@@ -1,0 +1,49 @@
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
+import { SessionProvider } from "@/components/providers/session-provider";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Portfolio | Full Stack Developer",
+  description: "A comprehensive portfolio showcasing projects, skills, and experience.",
+  keywords: ["Portfolio", "Developer", "Full Stack", "React", "Next.js", "TypeScript"],
+  authors: [{ name: "Developer" }],
+  icons: {
+    icon: "/logo.svg",
+  },
+  openGraph: {
+    title: "Portfolio | Full Stack Developer",
+    description: "A comprehensive portfolio showcasing projects, skills, and experience.",
+    type: "website",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen`}
+      >
+        <SessionProvider>
+          {children}
+          <Toaster />
+        </SessionProvider>
+      </body>
+    </html>
+  );
+}

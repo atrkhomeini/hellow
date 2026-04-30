@@ -1,0 +1,148 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Admin user for authentication
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String   // hashed password
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Profile/Introduction data
+model Profile {
+  id           String   @id @default(cuid())
+  name         String
+  headline     String
+  bio          String
+  photoUrl     String?
+  cvUrl        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Skills with categories
+model Skill {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   // "soft", "hard", "language"
+  iconName    String?  // lucide icon name or custom
+  iconUrl     String?  // for custom uploaded icons
+  color       String?  // brand color
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  projects    ProjectSkill[]
+}
+
+// Work Experience
+model Experience {
+  id            String   @id @default(cuid())
+  title         String   // Changed from "position"
+  company       String
+  companyLogo   String?
+  startDate     String
+  endDate       String?
+  isCurrent     Boolean  @default(false) // Changed from "isPresent"
+  description   String   // Rich text/HTML
+  mediaUrls     String?  // JSON array of media URLs
+  externalLinks String?  // JSON array of {title, url}
+  order         Int      @default(0)
+  isPublished   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Projects
+model Project {
+  id            String   @id @default(cuid())
+  title         String
+  description   String   // Rich text/HTML
+  category      String   // "past", "in-development" - Changed from "status"
+  imageUrl      String?  // Changed from "thumbnailUrl"
+  mediaUrls     String?  // JSON array of additional media
+  projectUrl    String?  // Changed from "externalUrl"
+  githubUrl     String?  // Added for GitHub link
+  order         Int      @default(0)
+  isPublished   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  skills        ProjectSkill[]
+}
+
+// Project-Skill relationship
+model ProjectSkill {
+  projectId String
+  skillId   String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  skill     Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, skillId])
+}
+
+// Social Links
+model SocialLink {
+  id          String   @id @default(cuid())
+  platform    String   // "github", "linkedin", "whatsapp", "email"
+  url         String
+  icon        String?
+  order       Int      @default(0)
+  isPublished Boolean  @default(true) // Changed from "isActive"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Contact Messages
+model Message {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  content   String   // Changed from "message" to match API
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// My Taste Section - Music, Brewing, Fitness
+model TasteItem {
+  id          String   @id @default(cuid())
+  category    String   // "music", "brewing", "fitness"
+  title       String
+  description String?
+  embedUrl    String?  // For Apple Music embed
+  imageUrl    String?
+  content     String?  // Additional content
+  order       Int      @default(0)
+  isPublished Boolean  @default(true) // Changed from "isActive"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Session for auth (NextAuth compatible)
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@id([identifier, token])
+}
