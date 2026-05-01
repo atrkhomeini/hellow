@@ -1,18 +1,27 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { AnimatePresence, motion } from "motion/react"
-
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ExternalLink } from "lucide-react";
+import { FaGithub } from "react-icons/fa";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface ExpandableCardProps {
-  title: string
-  src: string
-  description: string
-  children?: React.ReactNode
-  className?: string
-  classNameExpanded?: string
-  [key: string]: any
+  title: string;
+  src: string;
+  description: string;
+  children?: React.ReactNode;
+  className?: string;
+  classNameExpanded?: string;
+  tags?: { id: string; name: string; color?: string }[];
+  links?: {
+    demo?: string;
+    github?: string;
+  };
+  category?: string;
+  [key: string]: any;
 }
 
 export function ExpandableCard({
@@ -22,98 +31,104 @@ export function ExpandableCard({
   children,
   className,
   classNameExpanded,
+  tags = [],
+  links,
+  category,
   ...props
 }: ExpandableCardProps) {
-  const [active, setActive] = React.useState(false)
-  const cardRef = React.useRef<HTMLDivElement>(null)
-  const id = React.useId()
+  const [active, setActive] = React.useState(false);
+  const cardRef = React.useRef<HTMLDivElement>(null);
+  const id = React.useId();
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setActive(false)
+        setActive(false);
       }
-    }
+    };
 
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
-        setActive(false)
+        setActive(false);
       }
-    }
+    };
 
-    window.addEventListener("keydown", onKeyDown)
-    document.addEventListener("mousedown", handleClickOutside)
-    document.addEventListener("touchstart", handleClickOutside)
+    window.addEventListener("keydown", onKeyDown);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
 
     return () => {
-      window.removeEventListener("keydown", onKeyDown)
-      document.removeEventListener("mousedown", handleClickOutside)
-      document.removeEventListener("touchstart", handleClickOutside)
-    }
-  }, [])
+      window.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
 
   return (
     <>
+      {/* Backdrop */}
       <AnimatePresence>
         {active && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-10 h-full w-full bg-white/50 backdrop-blur-md dark:bg-black/50"
+            className="fixed inset-0 z-40 h-full w-full bg-black/60 backdrop-blur-sm"
           />
         )}
       </AnimatePresence>
+
+      {/* Expanded Card */}
       <AnimatePresence>
         {active && (
-          <div
-            className={cn(
-              "fixed inset-0 z-[100] grid place-items-center before:pointer-events-none sm:mt-16"
-            )}
-          >
+          <div className="fixed inset-0 z-50 grid place-items-center p-4 sm:p-8">
             <motion.div
               layoutId={`card-${title}-${id}`}
               ref={cardRef}
               className={cn(
-                "relative flex h-full w-full max-w-[850px] flex-col overflow-auto bg-zinc-50 shadow-sm [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] sm:rounded-t-3xl dark:bg-zinc-950 dark:shadow-none",
+                "relative flex h-full max-h-[90vh] w-full max-w-4xl flex-col overflow-auto rounded-2xl border border-border bg-card shadow-2xl",
                 classNameExpanded
               )}
               {...props}
             >
+              {/* Image */}
               <motion.div layoutId={`image-${title}-${id}`}>
-                <div className="relative before:absolute before:inset-x-0 before:bottom-[-1px] before:z-50 before:h-[70px] before:bg-gradient-to-t before:from-zinc-50 dark:before:from-zinc-950">
+                <div className="relative">
                   <img
                     src={src}
                     alt={title}
-                    className="h-80 w-full object-cover object-center"
+                    className="h-64 sm:h-80 w-full object-cover rounded-t-2xl"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent rounded-t-2xl" />
                 </div>
               </motion.div>
-              <div className="relative h-full before:fixed before:inset-x-0 before:bottom-0 before:z-50 before:h-[70px] before:bg-gradient-to-t before:from-zinc-50 dark:before:from-zinc-950">
-                <div className="flex h-auto items-start justify-between p-8">
-                  <div>
-                    <motion.p
-                      layoutId={`description-${description}-${id}`}
-                      className="text-lg text-zinc-500 dark:text-zinc-400"
-                    >
-                      {description}
-                    </motion.p>
-                    <motion.h3
-                      layoutId={`title-${title}-${id}`}
-                      className="mt-0.5 text-4xl font-semibold text-black sm:text-4xl dark:text-white"
-                    >
-                      {title}
-                    </motion.h3>
-                  </div>
-                  <motion.button
-                    aria-label="Close card"
-                    layoutId={`button-${title}-${id}`}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200/90 bg-zinc-50 text-neutral-700 transition-colors duration-300 hover:border-gray-300/90 hover:bg-neutral-50 hover:text-black focus:outline-none dark:border-zinc-900 dark:bg-zinc-950 dark:text-white/70 dark:hover:border-zinc-800 dark:hover:bg-neutral-950 dark:hover:text-white"
-                    onClick={() => setActive(false)}
-                  >
-                    <motion.div
-                      animate={{ rotate: active ? 45 : 0 }}
-                      transition={{ duration: 0.4 }}
+
+              {/* Content */}
+              <div className="relative flex-1 overflow-auto">
+                <div className="p-6 sm:p-8">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                      <motion.p
+                        layoutId={`description-${description}-${id}`}
+                        className="text-sm text-muted-foreground mb-1"
+                      >
+                        {description}
+                      </motion.p>
+                      <motion.h3
+                        layoutId={`title-${title}-${id}`}
+                        className="text-2xl sm:text-3xl font-bold text-foreground"
+                      >
+                        {title}
+                      </motion.h3>
+                    </div>
+                    
+                    {/* Close button */}
+                    <motion.button
+                      aria-label="Close card"
+                      layoutId={`button-${title}-${id}`}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-surface-300 text-foreground transition-colors hover:bg-surface-200"
+                      onClick={() => setActive(false)}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -126,22 +141,76 @@ export function ExpandableCard({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       >
-                        <path d="M5 12h14" />
-                        <path d="M12 5v14" />
+                        <path d="M18 6L6 18" />
+                        <path d="M6 6l12 12" />
                       </svg>
-                    </motion.div>
-                  </motion.button>
-                </div>
-                <div className="relative px-6 sm:px-8">
+                    </motion.button>
+                  </div>
+
+                  {/* Category Badge */}
+                  {category && (
+                    <div className="mb-4">
+                      <Badge
+                        variant={category === "in-development" ? "default" : "secondary"}
+                        className={cn(
+                          category === "in-development" && "bg-amber-500/20 text-amber-500"
+                        )}
+                      >
+                        {category === "in-development" ? "🚧 In Development" : "✓ Past Project"}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Children content */}
                   <motion.div
                     layout
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="flex flex-col items-start gap-4 overflow-auto pb-10 text-base text-zinc-500 dark:text-zinc-400"
+                    className="space-y-4"
                   >
                     {children}
                   </motion.div>
+
+                  {/* Tags */}
+                  {tags.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-sm font-medium text-foreground mb-3">Technologies</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {tags.map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            variant="outline"
+                            className="text-sm"
+                          >
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Links */}
+                  {links && (links.demo || links.github) && (
+                    <div className="flex gap-3 mt-6 pt-6 border-t border-border">
+                      {links.demo && (
+                        <Button asChild className="bg-primary hover:bg-primary/90">
+                          <a href={links.demo} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Live Demo
+                          </a>
+                        </Button>
+                      )}
+                      {links.github && (
+                        <Button asChild variant="outline">
+                          <a href={links.github} target="_blank" rel="noopener noreferrer">
+                            <FaGithub className="w-4 h-4 mr-2" />
+                            View Code
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -149,6 +218,7 @@ export function ExpandableCard({
         )}
       </AnimatePresence>
 
+      {/* Card (collapsed) */}
       <motion.div
         role="dialog"
         aria-labelledby={`card-title-${id}`}
@@ -156,64 +226,94 @@ export function ExpandableCard({
         layoutId={`card-${title}-${id}`}
         onClick={() => setActive(true)}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-between rounded-2xl border border-gray-200/70 bg-zinc-50 p-3 shadow-sm dark:border-zinc-900 dark:bg-zinc-950 dark:shadow-none",
+          "flex cursor-pointer flex-col rounded-2xl border border-border bg-card overflow-hidden",
+          "hover:border-primary/30 transition-colors group",
           className
         )}
       >
-        <div className="flex flex-col gap-4">
+        {/* Image */}
+        <div className="relative overflow-hidden">
           <motion.div layoutId={`image-${title}-${id}`}>
             <img
               src={src}
               alt={title}
-              className="h-56 w-64 rounded-lg object-cover object-center"
+              className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </motion.div>
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+          
+          {/* Category Badge */}
+          {category && (
+            <div className="absolute top-3 right-3">
+              <Badge
+                variant={category === "in-development" ? "default" : "secondary"}
+                className={cn(
+                  category === "in-development" && "bg-amber-500/20 text-amber-500"
+                )}
+              >
+                {category === "in-development" ? "In Dev" : "Past"}
+              </Badge>
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
               <motion.p
                 layoutId={`description-${description}-${id}`}
-                className="text-sm font-medium text-zinc-500 md:text-left dark:text-zinc-400"
+                className="text-xs text-muted-foreground mb-1"
               >
                 {description}
               </motion.p>
               <motion.h3
                 layoutId={`title-${title}-${id}`}
-                className="font-semibold text-black md:text-left dark:text-white"
+                className="text-lg font-semibold text-foreground truncate"
               >
                 {title}
               </motion.h3>
             </div>
+            
             <motion.button
               aria-label="Open card"
               layoutId={`button-${title}-${id}`}
-              className={cn(
-                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200/90 bg-zinc-50 text-neutral-700 transition-colors duration-300 hover:border-gray-300/90 hover:bg-neutral-50 hover:text-black focus:outline-none dark:border-zinc-900 dark:bg-zinc-950 dark:text-white/70 dark:hover:border-zinc-800 dark:hover:bg-neutral-950 dark:hover:text-white",
-                className
-              )}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-surface-300 text-foreground transition-colors hover:bg-surface-200"
             >
-              <motion.div
-                animate={{ rotate: active ? 45 : 0 }}
-                transition={{ duration: 0.4 }}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M5 12h14" />
-                  <path d="M12 5v14" />
-                </svg>
-              </motion.div>
+                <path d="M5 12h14" />
+                <path d="M12 5v14" />
+              </svg>
             </motion.button>
           </div>
+
+          {/* Tags preview */}
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {tags.slice(0, 3).map((tag) => (
+                <Badge key={tag.id} variant="outline" className="text-xs">
+                  {tag.name}
+                </Badge>
+              ))}
+              {tags.length > 3 && (
+                <Badge variant="outline" className="text-xs">
+                  +{tags.length - 3}
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
       </motion.div>
     </>
-  )
+  );
 }

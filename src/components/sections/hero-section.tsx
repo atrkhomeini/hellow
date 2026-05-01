@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Download, Mail } from "lucide-react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
-import { ShineButton } from "@/components/lightswind/shine-button";
+import { GradientSlideButton } from "@/components/ui/gradient-slide-button";
 import { BlurReveal } from "@/components/ui/blur-reveal";
 import { TypingText } from "@/components/ui/typing-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,7 +22,6 @@ export function HeroSection() {
   const { profile, socialLinks } = usePortfolioStore();
 
   // Get roles from profile headline or use defaults
-  // You can customize this to fetch from a separate field
   const roles = profile?.headline 
     ? [profile.headline, ...defaultRoles.filter(r => r !== profile.headline)].slice(0, 3)
     : defaultRoles;
@@ -141,13 +140,17 @@ export function HeroSection() {
               transition={{ delay: 0.6, duration: 0.5 }}
               className="flex flex-wrap items-center justify-center lg:justify-start gap-4"
             >
+              {/* Download CV - Gradient Slide Button */}
               {profile?.cvUrl && (
-                <ShineButton
-                  label="Download CV"
-                  size="lg"
-                  bgColor="linear-gradient(135deg, #3ecf8e 0%, #2dd4bf 100%)"
+                <GradientSlideButton
                   onClick={() => window.open(profile.cvUrl!, "_blank")}
-                />
+                  className="text-base"
+                  colorFrom="#ededed"
+                  colorTo="#3ecf8e"
+                >
+                  <Download className="w-5 h-5" />
+                  Download CV
+                </GradientSlideButton>
               )}
 
               {/* Social Links */}

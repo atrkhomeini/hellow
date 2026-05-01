@@ -2,86 +2,146 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Save, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, Code2, Wrench, Languages } from "lucide-react";
 import { usePortfolioStore, Skill } from "@/store/portfolio-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-const skillCategories = [
-  { value: "soft", label: "Soft Skills" },
-  { value: "hard", label: "Hard Skills" },
-  { value: "language", label: "Languages & Frameworks" },
+const categories = [
+  { value: "expertise", label: "Expertise", icon: Code2 },
+  { value: "hard", label: "Hard Skills", icon: Wrench },
+  { value: "language", label: "Languages & Frameworks", icon: Languages },
 ];
 
 export function SkillsManager() {
   const { skills, setSkills } = usePortfolioStore();
-  const [isAdding, setIsAdding] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
-    category: "hard",
-    icon: "",
-    level: 80,
-    isPublished: true,
+    category: "expertise",
+    iconUrl: "",
+    color: "",
+    isActive: true,
   });
 
-  const handleAddSkill = async () => {
-    if (!formData.name.trim()) return;
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      category: "expertise",
+      iconUrl: "",
+      color: "",
+      isActive: true,
+    });
+    setEditingId(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     try {
-      const response = await fetch("/api/skills", {
-        method: "POST",
+      const url = editingId ? `/api/skills/${editingId}` : "/api/skills";
+      const method = editingId ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        const newSkill = await response.json();
-        setSkills([...skills, newSkill]);
-        setFormData({ name: "", category: "hard", icon: "", level: 80, isPublished: true });
-        setIsAdding(false);
-        toast({ title: "Success", description: "Skill added successfully" });
+        const savedSkill = await response.json();
+
+        if (editingId) {
+          setSkills(
+            skills.map((skill) =>
+              skill.id === editingId ? savedSkill : skill
+            )
+          );
+        } else {
+          setSkills([...skills, savedSkill]);
+        }
+
+        setIsDialogOpen(false);
+        resetForm();
+        toast({
+          title: "Success",
+          description: editingId ? "Skill updated" : "Skill added",
+        });
       }
     } catch (error) {
-      toast({ title: "Error", description: "Failed to add skill", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to save", variant: "destructive" });
     }
   };
 
-  const handleUpdateSkill = async (id: string, data: Partial<Skill>) => {
-    try {
-      const response = await fetch(`/api/skills/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        const updatedSkill = await response.json();
-        setSkills(skills.map((s) => (s.id === id ? updatedSkill : s)));
-        setEditingId(null);
-        toast({ title: "Success", description: "Skill updated successfully" });
-      }
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to update skill", variant: "destructive" });
-    }
-  };
-
-  const handleDeleteSkill = async (id: string) => {
+  const handleDelete = async (id: string) => {
     try {
       const response = await fetch(`/api/skills/${id}`, { method: "DELETE" });
 
       if (response.ok) {
-        setSkills(skills.filter((s) => s.id !== id));
-        toast({ title: "Success", description: "Skill deleted successfully" });
+        setSkills(skills.filter((skill) => skill.id !== id));
+        toast({ title: "Success", description: "Skill deleted" });
       }
     } catch (error) {
-      toast({ title: "Error", description: "Failed to delete skill", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to delete", variant: "destructive" });
     }
+  };
+
+  const handleToggleActive = async (id: string, isActive: boolean) => {
+    try {
+      const response = await fetch(`/api/skills/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive }),
+      });
+
+      if (response.ok) {
+        setSkills(
+          skills.map((skill) =>
+            skill.id === id ? { ...skill, isActive } : skill
+          )
+        );
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update", variant: "destructive" });
+    }
+  };
+
+  const openEdit = (skill: Skill) => {
+    setFormData({
+      name: skill.name,
+      category: skill.category,
+      iconUrl: skill.iconUrl || "",
+      color: skill.color || "",
+      isActive: skill.isActive,
+    });
+    setEditingId(skill.id);
+    setIsDialogOpen(true);
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const cat = categories.find((c) => c.value === category);
+    return cat?.icon || Code2;
   };
 
   return (
@@ -89,121 +149,191 @@ export function SkillsManager() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Skills</h2>
-          <p className="text-muted-foreground">Manage your technical and soft skills</p>
+          <p className="text-muted-foreground">Manage your skills and expertise</p>
         </div>
-        <Button onClick={() => setIsAdding(true)} className="bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Skill
-        </Button>
-      </div>
-
-      {/* Add Skill Form */}
-      {isAdding && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-lg border border-border bg-card mb-6"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              placeholder="Skill name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
-            <Select
-              value={formData.category}
-              onValueChange={(value) => setFormData({ ...formData, category: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {skillCategories.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Icon name (e.g., code, database)"
-              value={formData.icon}
-              onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-            />
-            <Input
-              type="number"
-              placeholder="Level (0-100)"
-              value={formData.level}
-              onChange={(e) => setFormData({ ...formData, level: parseInt(e.target.value) || 0 })}
-              min={0}
-              max={100}
-            />
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setIsAdding(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddSkill} className="bg-primary hover:bg-primary/90">
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={resetForm} className="bg-primary hover:bg-primary/90">
+              <Plus className="w-4 h-4 mr-2" />
               Add Skill
             </Button>
-          </div>
-        </motion.div>
-      )}
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingId ? "Edit Skill" : "Add Skill"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label>Name</Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., React, Docker, Python"
+                  required
+                />
+              </div>
 
-      {/* Skills List by Category */}
-      {skillCategories.map((category) => {
-        const categorySkills = skills.filter((s) => s.category === category.value);
-        if (categorySkills.length === 0) return null;
-
-        return (
-          <div key={category.value} className="mb-8">
-            <h3 className="text-lg font-semibold text-foreground mb-4">{category.label}</h3>
-            <div className="space-y-2">
-              {categorySkills.map((skill) => (
-                <motion.div
-                  key={skill.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={cn(
-                    "flex items-center gap-4 p-4 rounded-lg border border-border bg-card",
-                    "group hover:border-primary/30 transition-colors"
-                  )}
+              <div>
+                <Label>Category</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
                 >
-                  <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => {
+                      const Icon = cat.icon;
+                      return (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4" />
+                            {cat.label}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">{skill.name}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        Level: {skill.level}%
-                      </Badge>
-                    </div>
-                    {skill.icon && (
-                      <span className="text-sm text-muted-foreground">Icon: {skill.icon}</span>
-                    )}
-                  </div>
+              <div>
+                <Label>Icon</Label>
+                <ImageUpload
+                  value={formData.iconUrl}
+                  onChange={(url) => setFormData({ ...formData, iconUrl: url })}
+                  label="Upload Icon (SVG, PNG, ICO)"
+                  accept="image"
+                  maxSize={2}
+                  className="mt-2"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Recommended: Square icon (64x64 or 128x128), SVG or PNG with transparency
+                </p>
+              </div>
 
-                  <Switch
-                    checked={skill.isPublished}
-                    onCheckedChange={(checked) => handleUpdateSkill(skill.id, { isPublished: checked })}
+              <div>
+                <Label>Brand Color (optional)</Label>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="color"
+                    value={formData.color || "#3ecf8e"}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="w-12 h-10 p-1 cursor-pointer"
                   />
+                  <Input
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    placeholder="#3ecf8e"
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Used for icon background in the carousel
+                </p>
+              </div>
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteSkill(skill.id)}
-                    className="text-muted-foreground hover:text-destructive"
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, isActive: checked })
+                  }
+                />
+                <Label>Active</Label>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-primary hover:bg-primary/90">
+                  {editingId ? "Update" : "Add"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Skills List */}
+      <div className="space-y-3">
+        {categories.map((category) => {
+          const categorySkills = skills.filter((s) => s.category === category.value);
+          const Icon = category.icon;
+
+          if (categorySkills.length === 0) return null;
+
+          return (
+            <div key={category.value} className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Icon className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  {category.label}
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {categorySkills.map((skill) => (
+                  <motion.div
+                    key={skill.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg border border-border bg-card",
+                      "hover:border-primary/30 transition-colors"
+                    )}
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
+                    <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
 
-      {skills.length === 0 && !isAdding && (
+                    {/* Icon Preview */}
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: skill.color ? `${skill.color}20` : "rgba(62, 207, 142, 0.2)" }}
+                    >
+                      {skill.iconUrl ? (
+                        <img
+                          src={skill.iconUrl}
+                          alt={skill.name}
+                          className="w-6 h-6 object-contain"
+                        />
+                      ) : (
+                        <Code2 className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-foreground truncate">{skill.name}</h4>
+                      <p className="text-xs text-muted-foreground capitalize">{skill.category}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={skill.isActive}
+                        onCheckedChange={(checked) => handleToggleActive(skill.id, checked)}
+                      />
+                      <Button variant="outline" size="sm" onClick={() => openEdit(skill)}>
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(skill.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {skills.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           <p>No skills yet. Add your first skill to get started.</p>
         </div>

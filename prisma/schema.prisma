@@ -36,7 +36,7 @@ model Profile {
 model Skill {
   id          String   @id @default(cuid())
   name        String
-  category    String   // "soft", "hard", "language"
+  category    String   // "expertise", "hard", "language"
   iconName    String?  // lucide icon name or custom
   iconUrl     String?  // for custom uploaded icons
   color       String?  // brand color

@@ -13,7 +13,7 @@ export interface Profile {
 export interface Skill {
   id: string;
   name: string;
-  category: "soft" | "hard" | "language";
+  category: "expertise" | "hard" | "language";
   iconName: string | null;
   iconUrl: string | null;
   color: string | null;
