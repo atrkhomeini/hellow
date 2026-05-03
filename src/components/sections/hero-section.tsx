@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Download, Mail } from "lucide-react";
-import { FaGithub, FaLinkedin } from "react-icons/fa";
+import { FaGithub, FaLinkedin, FaWhatsapp, FaInstagram } from "react-icons/fa";
 import { GradientSlideButton } from "@/components/ui/gradient-slide-button";
 import { BlurReveal } from "@/components/ui/blur-reveal";
 import { TypingText } from "@/components/ui/typing-text";
@@ -32,6 +32,10 @@ export function HeroSection() {
         return <FaGithub className="w-5 h-5" />;
       case "linkedin":
         return <FaLinkedin className="w-5 h-5" />;
+      case "whatsapp":
+        return <FaWhatsapp className="w-5 h-5" />;
+      case "instagram":
+        return <FaInstagram className="w-5 h-5" />;
       case "email":
         return <Mail className="w-5 h-5" />;
       default:

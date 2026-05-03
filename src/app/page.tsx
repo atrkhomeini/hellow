@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut, signIn } from "next-auth/react";
-import { Home, Code2, Briefcase, FolderKanban, Heart, Mail, Settings, LogOut, Lock, Loader2, User, Menu, X } from "lucide-react";
+import { Home, Code2, Briefcase, FolderKanban, Heart, Mail, Settings, LogOut, Lock, Loader2, User } from "lucide-react";
 import { HeroSection } from "@/components/sections/hero-section";
 import { SkillsSection } from "@/components/sections/skills-section";
 import { ExperienceSection } from "@/components/sections/experience-section";
@@ -16,7 +16,17 @@ import Loader from "@/components/kokonutui/loader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DynamicNavigation } from "@/components/lightswind/dynamic-navigation";
+import {
+  Navbar,
+  NavBody,
+  NavItems,
+  MobileNav,
+  NavbarLogo,
+  NavbarButton,
+  MobileNavHeader,
+  MobileNavToggle,
+  MobileNavMenu,
+} from "@/components/ui/resizable-navbar";
 import {
   Dialog,
   DialogContent,
@@ -24,25 +34,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
-const navLinks = [
-  { id: "hero", label: "Home", href: "#hero", icon: <Home className="w-4 h-4" /> },
-  { id: "skills", label: "Skills", href: "#skills", icon: <Code2 className="w-4 h-4" /> },
-  { id: "experience", label: "Experience", href: "#experience", icon: <Briefcase className="w-4 h-4" /> },
-  { id: "projects", label: "Projects", href: "#projects", icon: <FolderKanban className="w-4 h-4" /> },
-  { id: "taste", label: "My Taste", href: "#taste", icon: <Heart className="w-4 h-4" /> },
-  { id: "contact", label: "Contact", href: "#contact", icon: <Mail className="w-4 h-4" /> },
+const navItems = [
+  { name: "Home", link: "#hero", icon: <Home className="w-4 h-4" /> },
+  { name: "Skills", link: "#skills", icon: <Code2 className="w-4 h-4" /> },
+  { name: "Experience", link: "#experience", icon: <Briefcase className="w-4 h-4" /> },
+  { name: "Projects", link: "#projects", icon: <FolderKanban className="w-4 h-4" /> },
+  { name: "Taste", link: "#taste", icon: <Heart className="w-4 h-4" /> },
+  { name: "Contact", link: "#contact", icon: <Mail className="w-4 h-4" /> },
 ];
 
 export default function HomePage() {
   const { data: session, status } = useSession();
   const { isLoading, fetchAllData, isAdminMode, setAdminMode } = usePortfolioStore();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: "",
@@ -66,13 +76,13 @@ export default function HomePage() {
   // Track active section on scroll
   useEffect(() => {
     const handleScroll = () => {
-      const sections = navLinks.map(link => document.getElementById(link.id));
+      const sections = navItems.map((item) => document.getElementById(item.link.replace("#", "")));
       const scrollPosition = window.scrollY + 100;
 
       for (let i = sections.length - 1; i >= 0; i--) {
         const section = sections[i];
         if (section && section.offsetTop <= scrollPosition) {
-          setActiveSection(navLinks[i].id);
+          setActiveSection(navItems[i].link.replace("#", ""));
           break;
         }
       }
@@ -87,7 +97,7 @@ export default function HomePage() {
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
     }
-    setMobileMenuOpen(false);
+    setIsMobileMenuOpen(false);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -137,108 +147,116 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-        <div className="flex items-center gap-4">
-          {/* Main Navigation */}
-          <DynamicNavigation
-            links={navLinks}
-            activeLink={activeSection}
-            onLinkClick={scrollToSection}
-            glowIntensity={8}
-            highlightColor="rgba(62, 207, 142, 0.15)"
-            className="hidden md:flex"
+      <Navbar>
+        {/* Desktop Navigation */}
+        <NavBody>
+          <NavbarLogo />
+          <NavItems
+            items={navItems}
+            activeItem={activeSection}
+            onItemClick={scrollToSection}
           />
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-3 rounded-full bg-background/80 backdrop-blur-md border border-border hover:border-primary/50 transition-colors"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-
-          {/* Auth Buttons */}
           <div className="flex items-center gap-2">
             {isAdminMode ? (
               <>
-                <Button
+                <NavbarButton
+                  variant={showAdmin ? "primary" : "secondary"}
                   onClick={() => setShowAdmin(!showAdmin)}
-                  variant={showAdmin ? "default" : "outline"}
-                  size="sm"
-                  className={cn(
-                    "rounded-full",
-                    showAdmin && "bg-primary text-primary-foreground"
-                  )}
                 >
-                  <Settings className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">{showAdmin ? "View Site" : "Admin"}</span>
-                </Button>
-
-                <Button
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-full"
-                >
-                  <LogOut className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Logout</span>
-                </Button>
+                  <Settings className="w-4 h-4 mr-2" />
+                  {showAdmin ? "View Site" : "Admin"}
+                </NavbarButton>
+                <NavbarButton variant="ghost" onClick={() => signOut({ callbackUrl: "/" })}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </NavbarButton>
               </>
             ) : (
-              <Button
-                onClick={() => setLoginDialogOpen(true)}
-                variant="outline"
-                size="sm"
-                className="rounded-full gap-2"
-              >
-                <Lock className="w-4 h-4" />
-                <span className="hidden sm:inline">Admin Login</span>
-              </Button>
+              <NavbarButton variant="secondary" onClick={() => setLoginDialogOpen(true)}>
+                <Lock className="w-4 h-4 mr-2" />
+                Admin Login
+              </NavbarButton>
             )}
           </div>
-        </div>
+        </NavBody>
 
         {/* Mobile Navigation */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className="md:hidden absolute top-14 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm"
-            >
-              <DynamicNavigation
-                links={navLinks}
-                activeLink={activeSection}
-                onLinkClick={(id) => {
-                  scrollToSection(id);
-                  setMobileMenuOpen(false);
+        <MobileNav>
+          <MobileNavHeader>
+            <NavbarLogo />
+            <MobileNavToggle
+              isOpen={isMobileMenuOpen}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            />
+          </MobileNavHeader>
+
+          <MobileNavMenu
+            isOpen={isMobileMenuOpen}
+            onClose={() => setIsMobileMenuOpen(false)}
+          >
+            {navItems.map((item) => (
+              <a
+                key={item.link}
+                href={item.link}
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection(item.link.replace("#", ""));
                 }}
-                glowIntensity={8}
-                highlightColor="rgba(62, 207, 142, 0.15)"
-                showLabelsOnMobile
-                className="flex-col py-4"
-              />
-              
-              {/* Mobile Login Button */}
-              {!isAdminMode && (
-                <Button
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                  activeSection === item.link.replace("#", "")
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-surface-300"
+                )}
+              >
+                {item.icon}
+                <span>{item.name}</span>
+              </a>
+            ))}
+            
+            <div className="flex w-full flex-col gap-2 mt-4 pt-4 border-t border-border">
+              {isAdminMode ? (
+                <>
+                  <NavbarButton
+                    variant="primary"
+                    className="w-full justify-center"
+                    onClick={() => {
+                      setShowAdmin(!showAdmin);
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    {showAdmin ? "View Site" : "Admin"}
+                  </NavbarButton>
+                  <NavbarButton
+                    variant="secondary"
+                    className="w-full justify-center"
+                    onClick={() => {
+                      signOut({ callbackUrl: "/" });
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </NavbarButton>
+                </>
+              ) : (
+                <NavbarButton
+                  variant="primary"
+                  className="w-full justify-center"
                   onClick={() => {
-                    setMobileMenuOpen(false);
                     setLoginDialogOpen(true);
+                    setIsMobileMenuOpen(false);
                   }}
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-4 rounded-full"
                 >
                   <Lock className="w-4 h-4 mr-2" />
                   Admin Login
-                </Button>
+                </NavbarButton>
               )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </nav>
+            </div>
+          </MobileNavMenu>
+        </MobileNav>
+      </Navbar>
 
       {/* Login Dialog */}
       <Dialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
@@ -260,9 +278,7 @@ export default function HomePage() {
                 type="email"
                 placeholder="admin@example.com"
                 value={loginForm.email}
-                onChange={(e) =>
-                  setLoginForm({ ...loginForm, email: e.target.value })
-                }
+                onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                 required
                 className="bg-surface-200 border-border"
               />
@@ -274,9 +290,7 @@ export default function HomePage() {
                 type="password"
                 placeholder="••••••••"
                 value={loginForm.password}
-                onChange={(e) =>
-                  setLoginForm({ ...loginForm, password: e.target.value })
-                }
+                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                 required
                 className="bg-surface-200 border-border"
               />
@@ -339,7 +353,7 @@ export default function HomePage() {
             <footer className="py-8 px-4 border-t border-border bg-surface-100">
               <div className="max-w-6xl mx-auto text-center">
                 <p className="text-muted-foreground text-sm">
-                  © {new Date().getFullYear()} Portfolio. Built with Next.js and Coffee
+                  © {new Date().getFullYear()} Portfolio. Built with Next.js and ❤️
                 </p>
               </div>
             </footer>

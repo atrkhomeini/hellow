@@ -2,84 +2,74 @@
 
 import { usePortfolioStore } from "@/store/portfolio-store";
 import { ScrollTimeline, TimelineEvent } from "@/components/lightswind/scroll-timeline";
-import { Briefcase, MapPin, ExternalLink } from "lucide-react";
+import { Briefcase } from "lucide-react";
+
+// Parse external links from JSON
+function parseExternalLinks(links: string | null): { title: string; url: string }[] {
+  if (!links) return [];
+  try {
+    return JSON.parse(links);
+  } catch {
+    return [];
+  }
+}
 
 export function ExperienceSection() {
   const { experiences } = usePortfolioStore();
 
-  const publishedExperiences = experiences.filter((e) => e.isPublished);
-
-  const timelineEvents: TimelineEvent[] = publishedExperiences.map((exp) => {
-    const formatDate = (dateStr: string) => {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-      });
-    };
-
-    const yearLabel = exp.isCurrent
-      ? `${formatDate(exp.startDate)} - Present`
-      : exp.endDate
-      ? `${formatDate(exp.startDate)} - ${formatDate(exp.endDate)}`
-      : formatDate(exp.startDate);
-
-    const description = exp.description +
-      (exp.location ? `\n\n📍 ${exp.location}` : "") +
-      (exp.projectUrl ? `\n\n[View Project](${exp.projectUrl})` : "");
-
-    return {
+  // Filter published experiences and map to TimelineEvent format
+  const timelineEvents: TimelineEvent[] = experiences
+    .filter((exp) => exp.isPublished)
+    .map((exp) => ({
       id: exp.id,
-      year: yearLabel,
+      year: exp.isCurrent
+        ? `${exp.startDate} - Present`
+        : `${exp.startDate} - ${exp.endDate}`,
       title: exp.title,
       subtitle: exp.company,
       description: exp.description,
-      icon: exp.projectUrl ? <ExternalLink className="h-4 w-4" /> : <Briefcase className="h-4 w-4" />,
-      color: "#3ecf8e",
-    };
-  });
+      icon: <Briefcase className="h-3.5 w-3.5" />,
+      externalLinks: parseExternalLinks(exp.externalLinks),
+    }));
+
+  // Don't render if no experiences
+  if (timelineEvents.length === 0) {
+    return (
+      <section id="experience" className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">
+          No experience entries yet. Add some in the admin panel.
+        </p>
+      </section>
+    );
+  }
 
   return (
-    <section id="experience" className="bg-surface-200">
+    <section id="experience">
       <ScrollTimeline
-        events={timelineEvents.length > 0 ? timelineEvents : [
-          {
-            id: "1",
-            year: "2024",
-            title: "Senior Developer",
-            subtitle: "Tech Company",
-            description: "Leading development of enterprise applications.",
-            color: "#3ecf8e",
-          },
-          {
-            id: "2",
-            year: "2022",
-            title: "Full Stack Developer",
-            subtitle: "Startup",
-            description: "Built scalable web applications from scratch.",
-            color: "#3ecf8e",
-          },
-          {
-            id: "3",
-            year: "2020",
-            title: "Junior Developer",
-            subtitle: "Agency",
-            description: "Started my journey in web development.",
-            color: "#3ecf8e",
-          },
-        ]}
+        events={timelineEvents}
         title="Experience"
-        subtitle="My professional journey"
-        animationOrder="sequential"
+        subtitle="My professional journey and career milestones"
+        // Animation settings
+        animationOrder="staggered"
+        revealAnimation="slide"
         cardAlignment="alternating"
-        lineColor="bg-border"
-        activeColor="bg-primary"
+        // Card styling
+        cardVariant="elevated"
+        cardEffect="glow"
+        perspective={true}
+        // Connector styling
+        connectorStyle="dashed"
+        lineColor="#2e2e2e"
+        // Progress indicator
         progressIndicator={true}
-        cardVariant="default"
-        revealAnimation="fade"
-        connectorStyle="line"
+        progressLineWidth={2}
+        progressLineCap="round"
+        // Colors (Supabase-inspired)
+        glowColor="#3ecf8e"
+        // Other settings
+        parallaxIntensity={0.1}
+        dateFormat="badge"
         darkMode={true}
-        className="min-h-[50vh]"
       />
     </section>
   );

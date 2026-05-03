@@ -5,10 +5,15 @@ import {
   useScroll,
   useTransform,
   useSpring,
+  MotionValue,
 } from "framer-motion";
 import { cn } from "../../lib/utils";
-import { Card, CardContent } from "./card";
-import { Calendar } from "lucide-react";
+import { Card, CardContent } from "../ui/card";
+import { Calendar, ExternalLink } from "lucide-react";
+
+/* ==========================================================================
+   Types & Interfaces
+   ========================================================================== */
 
 export interface TimelineEvent {
   id?: string;
@@ -18,6 +23,7 @@ export interface TimelineEvent {
   description: string;
   icon?: React.ReactNode;
   color?: string;
+  externalLinks?: { title: string; url: string }[];
 }
 
 export interface ScrollTimelineProps {
@@ -28,6 +34,7 @@ export interface ScrollTimelineProps {
   cardAlignment?: "alternating" | "left" | "right";
   lineColor?: string;
   activeColor?: string;
+  glowColor?: string;
   progressIndicator?: boolean;
   cardVariant?: "default" | "elevated" | "outlined" | "filled";
   cardEffect?: "none" | "glow" | "shadow" | "bounce";
@@ -49,28 +56,133 @@ const DEFAULT_EVENTS: TimelineEvent[] = [
     title: "Major Achievement",
     subtitle: "Organization Name",
     description:
-      "Description of the achievement or milestone reached during this time period.",
+      "- Led the development of a new product feature\n- Increased team productivity by 25%\n- Mentored 3 junior developers",
   },
   {
     year: "2022",
     title: "Important Milestone",
     subtitle: "Organization Name",
-    description: "Details about this significant milestone and its impact.",
+    description: "- Delivered project ahead of schedule\n- Received employee of the year award",
   },
   {
     year: "2021",
     title: "Key Event",
     subtitle: "Organization Name",
-    description: "Information about this key event in the timeline.",
+    description: "- Joined the company as a mid-level developer\n- Completed certification in cloud technologies",
   },
 ];
 
-// Separate component for timeline item to properly use hooks
+/* ==========================================================================
+   Description Parser Utility
+   ========================================================================== */
+
+/**
+ * Parses description text into an array of bullet points.
+ * Handles multiple formats:
+ * 1. Hyphen-separated lines: "- Item 1\n- Item 2"
+ * 2. Existing HTML: "<li>Item 1</li><li>Item 2</li>"
+ * 3. Plain text (returned as single item)
+ */
+function parseDescription(description: string): string[] {
+  if (!description) return [];
+
+  // Check if it's HTML with <li> tags
+  if (description.includes("<li>")) {
+    const liMatches = description.match(/<li[^>]*>(.*?)<\/li>/gi);
+    if (liMatches) {
+      return liMatches.map((match) =>
+        match.replace(/<li[^>]*>|<\/li>/gi, "").trim()
+      );
+    }
+  }
+
+  // Check for hyphen-separated bullet points
+  // Match lines starting with "-" (with optional whitespace)
+  const bulletRegex = /^[ \t]*-[ \t]+(.+)$/gm;
+  const matches = [...description.matchAll(bulletRegex)];
+
+  if (matches.length > 0) {
+    return matches.map((match) => match[1].trim());
+  }
+
+  // Check for newline-separated items (without hyphens)
+  const lines = description
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  // If multiple lines, treat each as a bullet point
+  if (lines.length > 1) {
+    return lines;
+  }
+
+  // Single paragraph - return as single item (no bullets)
+  return [description];
+}
+
+/**
+ * Determines if description should be rendered as a list or paragraph
+ */
+function shouldRenderAsList(description: string): boolean {
+  if (!description) return false;
+
+  // Check for hyphen bullets
+  if (/^[ \t]*-[ \t]+/m.test(description)) return true;
+
+  // Check for HTML list
+  if (description.includes("<li>")) return true;
+
+  // Check for multiple lines
+  const lines = description.split(/\n/).filter((line) => line.trim().length > 0);
+  return lines.length > 1;
+}
+
+/* ==========================================================================
+   Description Renderer Component
+   ========================================================================== */
+
+interface DescriptionRendererProps {
+  description: string;
+  className?: string;
+}
+
+const DescriptionRenderer: React.FC<DescriptionRendererProps> = ({
+  description,
+  className,
+}) => {
+  const isList = shouldRenderAsList(description);
+
+  if (isList) {
+    const items = parseDescription(description);
+
+    return (
+      <ul className={cn("list-disc ml-5 space-y-1.5 leading-relaxed", className)}>
+        {items.map((item, index) => (
+          <li key={index} className="text-muted-foreground text-sm pl-1">
+            {item}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  // Single paragraph - render as plain text
+  return (
+    <p className={cn("text-muted-foreground leading-relaxed text-sm", className)}>
+      {description}
+    </p>
+  );
+};
+
+/* ==========================================================================
+   Timeline Item Component
+   ========================================================================== */
+
 interface TimelineItemProps {
   event: TimelineEvent;
   index: number;
   activeIndex: number;
-  smoothProgress: ReturnType<typeof useSpring>;
+  smoothProgress: MotionValue<number>;
   parallaxIntensity: number;
   cardAlignment: "alternating" | "left" | "right";
   cardVariant: "default" | "elevated" | "outlined" | "filled";
@@ -79,6 +191,7 @@ interface TimelineItemProps {
   perspective: boolean;
   dateFormat: "text" | "badge";
   animationOrder: "sequential" | "staggered" | "simultaneous";
+  glowColor: string;
   setRef: (el: HTMLDivElement | null) => void;
 }
 
@@ -95,6 +208,7 @@ const TimelineItem = ({
   perspective,
   dateFormat,
   animationOrder,
+  glowColor,
   setRef,
 }: TimelineItemProps) => {
   const yOffset = useTransform(
@@ -108,23 +222,24 @@ const TimelineItem = ({
       animationOrder === "simultaneous"
         ? 0
         : animationOrder === "staggered"
-        ? index * 0.2
-        : index * 0.3;
+        ? index * 0.15
+        : index * 0.25;
 
     const initialStates = {
-      fade: { opacity: 0, y: 20 },
+      fade: { opacity: 0, y: 30 },
       slide: {
         x:
           cardAlignment === "left"
-            ? -100
+            ? -120
             : cardAlignment === "right"
-            ? 100
+            ? 120
             : index % 2 === 0
-            ? -100
-            : 100,
+            ? -120
+            : 120,
         opacity: 0,
+        y: 20,
       },
-      scale: { scale: 0.8, opacity: 0 },
+      scale: { scale: 0.85, opacity: 0 },
       flip: { rotateY: 90, opacity: 0 },
       none: { opacity: 1 },
     };
@@ -138,48 +253,70 @@ const TimelineItem = ({
         scale: 1,
         rotateY: 0,
         transition: {
-          duration: 0.7,
+          duration: 0.8,
           delay: baseDelay,
           ease: [0.25, 0.1, 0.25, 1.0] as [number, number, number, number],
         },
       },
-      viewport: { once: false, margin: "-100px" },
+      viewport: { once: false, margin: "-80px" },
     };
   };
 
   const getCardClasses = () => {
-    const baseClasses = "relative z-30 rounded-lg transition-all duration-300";
+    const baseClasses = "relative z-30 rounded-xl transition-all duration-500 ease-out";
+
     const variantClasses = {
-      default: "bg-card border shadow-sm",
-      elevated: "bg-card border border-border/40 shadow-md",
-      outlined: "bg-card/50 backdrop-blur border-2 border-primary/20",
-      filled: "bg-primary/10 border border-primary/30",
+      default: "bg-card border border-border/50 shadow-sm",
+      elevated: "bg-card border border-border/40 shadow-lg backdrop-blur-sm",
+      outlined: "bg-card/50 backdrop-blur-md border-2 border-primary/20",
+      filled: "bg-primary/5 border border-primary/20",
     };
+
     const effectClasses = {
       none: "",
-      glow: "hover:shadow-[0_0_15px_rgba(var(--primary-rgb)/0.5)]",
-      shadow: "hover:shadow-lg hover:-translate-y-1",
-      bounce: "hover:scale-[1.03] hover:shadow-md active:scale-[0.97]",
+      glow: "hover:shadow-[0_0_30px_rgba(62,207,142,0.3),0_0_60px_rgba(62,207,142,0.15)] hover:border-primary/40",
+      shadow: "hover:shadow-2xl hover:-translate-y-2 hover:border-primary/30",
+      bounce: "hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]",
     };
+
     const alignmentClassesDesktop =
       cardAlignment === "alternating"
         ? index % 2 === 0
-          ? "lg:mr-[calc(50%+20px)]"
-          : "lg:ml-[calc(50%+20px)]"
+          ? "lg:mr-[calc(50%+24px)]"
+          : "lg:ml-[calc(50%+24px)]"
         : cardAlignment === "left"
         ? "lg:mr-auto lg:ml-0"
         : "lg:ml-auto lg:mr-0";
-    const perspectiveClass = perspective
-      ? "transform transition-transform hover:rotate-y-1 hover:rotate-x-1"
-      : "";
 
     return cn(
       baseClasses,
       variantClasses[cardVariant],
       effectClasses[cardEffect],
       alignmentClassesDesktop,
-      "w-full lg:w-[calc(50%-40px)]"
+      "w-full lg:w-[calc(50%-48px)]"
     );
+  };
+
+  // 3D rotation on hover
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!perspective) return;
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    setRotateX((y - centerY) / 20);
+    setRotateY((centerX - x) / 20);
+  };
+
+  const handleMouseLeave = () => {
+    setRotateX(0);
+    setRotateY(0);
   };
 
   return (
@@ -187,7 +324,7 @@ const TimelineItem = ({
       key={event.id || index}
       ref={setRef}
       className={cn(
-        "relative flex items-center mb-20 py-4",
+        "relative flex items-center mb-16 py-4",
         "flex-col lg:flex-row",
         cardAlignment === "alternating"
           ? index % 2 === 0
@@ -198,6 +335,7 @@ const TimelineItem = ({
           : "lg:flex-row-reverse lg:justify-start"
       )}
     >
+      {/* Timeline Node Dot */}
       <div
         className={cn(
           "absolute top-1/2 transform -translate-y-1/2 z-30",
@@ -206,76 +344,128 @@ const TimelineItem = ({
       >
         <motion.div
           className={cn(
-            "w-6 h-6 rounded-full border-4 bg-background flex items-center justify-center",
+            "w-5 h-5 rounded-full border-4 bg-background flex items-center justify-center transition-colors duration-300",
             index <= activeIndex
               ? "border-primary"
-              : "border bg-card"
+              : "border-border/50"
           )}
           animate={
             index <= activeIndex
               ? {
-                  scale: [1, 1.3, 1],
+                  scale: [1, 1.4, 1],
                   boxShadow: [
-                    "0 0 0px rgba(99,102,241,0)",
-                    "0 0 12px rgba(99,102,241,0.6)",
-                    "0 0 0px rgba(99,102,241,0)",
+                    `0 0 0px ${glowColor}00`,
+                    `0 0 20px ${glowColor}80`,
+                    `0 0 0px ${glowColor}00`,
                   ],
                 }
               : {}
           }
           transition={{
-            duration: 0.8,
+            duration: 1.2,
             repeat: Infinity,
-            repeatDelay: 4,
+            repeatDelay: 3,
             ease: "easeInOut",
           }}
         />
       </div>
+
+      {/* Card with 3D Effect */}
       <motion.div
         className={cn(
           getCardClasses(),
-          "mt-12 lg:mt-0"
+          "mt-12 lg:mt-0",
+          perspective && "transform-gpu"
         )}
         variants={getCardVariants()}
         initial="initial"
         whileInView="whileInView"
-        viewport={{ once: false, margin: "-100px" }}
-        style={parallaxIntensity > 0 ? { y: yOffset } : undefined}
+        viewport={{ once: false, margin: "-80px" }}
+        style={{
+          y: parallaxIntensity > 0 ? yOffset : undefined,
+          rotateX: perspective ? rotateX : 0,
+          rotateY: perspective ? rotateY : 0,
+          transformStyle: perspective ? "preserve-3d" : undefined,
+        }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
-        <Card className="bg-background border">
+        {/* Glow overlay for glow effect */}
+        {cardEffect === "glow" && (
+          <div
+            className="absolute inset-0 rounded-xl opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+            style={{
+              background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${glowColor}10, transparent 40%)`,
+            }}
+          />
+        )}
+
+        <Card className="bg-transparent border-0 shadow-none">
           <CardContent className="p-6">
+            {/* Date Badge */}
             {dateFormat === "badge" ? (
-              <div className="flex items-center mb-2">
-                {event.icon || (
-                  <Calendar className="h-4 w-4 mr-2 text-primary" />
-                )}
-                <span
-                  className={cn(
-                    "text-sm font-bold",
-                    event.color
-                      ? `text-${event.color}`
-                      : "text-primary"
-                  )}
+              <div className="flex items-center gap-2 mb-3">
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
+                  style={{
+                    backgroundColor: `${glowColor}15`,
+                    color: glowColor,
+                  }}
                 >
-                  {event.year}
-                </span>
+                  {event.icon || <Calendar className="h-3.5 w-3.5" />}
+                  <span>{event.year}</span>
+                </div>
               </div>
             ) : (
-              <p className="text-lg font-bold text-primary mb-2">
+              <p
+                className="text-lg font-bold mb-2"
+                style={{ color: glowColor }}
+              >
                 {event.year}
               </p>
             )}
-            <h3 className="text-xl font-bold mb-1">
+
+            {/* Title */}
+            <h3 className="text-xl font-bold mb-1 text-foreground leading-tight">
               {event.title}
             </h3>
+
+            {/* Subtitle (Company) */}
             {event.subtitle && (
-              <p className="text-muted-foreground font-medium mb-2">
+              <p className="text-muted-foreground font-medium text-sm">
                 {event.subtitle}
               </p>
             )}
-            <p className="text-muted-foreground">
-              {event.description}
-            </p>
+
+            {/* Description with proper spacing and bullet points */}
+            {/* mt-4 creates clear separation between company and description */}
+            {event.description && (
+              <div className="mt-4">
+                <DescriptionRenderer description={event.description} />
+              </div>
+            )}
+
+            {/* External Links */}
+            {event.externalLinks && event.externalLinks.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                {event.externalLinks.map((link, i) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 hover:scale-105"
+                    style={{
+                      backgroundColor: `${glowColor}15`,
+                      color: glowColor,
+                    }}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    {link.title}
+                  </a>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -283,26 +473,31 @@ const TimelineItem = ({
   );
 };
 
+/* ==========================================================================
+   Main ScrollTimeline Component
+   ========================================================================== */
+
 export const ScrollTimeline = ({
   events = DEFAULT_EVENTS,
   title = "Timeline",
   subtitle = "Scroll to explore the journey",
-  animationOrder = "sequential",
+  animationOrder = "staggered",
   cardAlignment = "alternating",
-  lineColor = "bg-primary/30",
-  activeColor = "bg-primary",
+  lineColor = "#2e2e2e",
+  activeColor = "#3ecf8e",
+  glowColor = "#3ecf8e",
   progressIndicator = true,
-  cardVariant = "default",
-  cardEffect = "none",
-  parallaxIntensity = 0.2,
+  cardVariant = "elevated",
+  cardEffect = "glow",
+  parallaxIntensity = 0.15,
   progressLineWidth = 2,
   progressLineCap = "round",
   dateFormat = "badge",
-  revealAnimation = "fade",
+  revealAnimation = "slide",
   className = "",
-  connectorStyle = "line",
-  perspective = false,
-  darkMode = false,
+  connectorStyle = "dashed",
+  perspective = true,
+  darkMode = true,
 }: ScrollTimelineProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -314,8 +509,8 @@ export const ScrollTimeline = ({
   });
 
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 100,
-    damping: 30,
+    stiffness: 80,
+    damping: 25,
     restDelta: 0.001,
   });
 
@@ -335,24 +530,45 @@ export const ScrollTimeline = ({
     return () => unsubscribe();
   }, [scrollYProgress, events.length, activeIndex]);
 
-  const getConnectorClasses = () => {
-    const baseClasses = cn(
-      "absolute left-1/2 transform -translate-x-1/2",
-      lineColor
-    );
-    const widthStyle = `w-[${progressLineWidth}px]`;
+  // Dashed connector style using background-image pattern
+  const getConnectorStyle = (): React.CSSProperties => {
+    const baseStyle: React.CSSProperties = {
+      position: "absolute",
+      left: "50%",
+      transform: "translateX(-50%)",
+      top: 0,
+      height: "100%",
+      zIndex: 10,
+    };
+
     switch (connectorStyle) {
       case "dots":
-        return cn(baseClasses, "w-1 rounded-full");
+        return {
+          ...baseStyle,
+          width: "4px",
+          backgroundImage: `radial-gradient(circle, ${lineColor} 50%, transparent 50%)`,
+          backgroundSize: "4px 16px",
+          backgroundPosition: "center",
+        };
       case "dashed":
-        return cn(
-          baseClasses,
-          widthStyle,
-          `[mask-image:linear-gradient(to_bottom,black_33%,transparent_33%,transparent_66%,black_66%)] [mask-size:1px_12px]`
-        );
+        return {
+          ...baseStyle,
+          width: `${progressLineWidth}px`,
+          backgroundImage: `repeating-linear-gradient(
+            to bottom,
+            ${lineColor} 0,
+            ${lineColor} 8px,
+            transparent 8px,
+            transparent 16px
+          )`,
+        };
       case "line":
       default:
-        return cn(baseClasses, widthStyle);
+        return {
+          ...baseStyle,
+          width: `${progressLineWidth}px`,
+          backgroundColor: lineColor,
+        };
     }
   };
 
@@ -360,23 +576,37 @@ export const ScrollTimeline = ({
     <div
       ref={scrollRef}
       className={cn(
-        "relative min-h-screen w-full overflow-hidden",
+        "relative w-full overflow-hidden",
         darkMode ? "bg-background text-foreground" : "",
         className
       )}
     >
+      {/* Header Section */}
       <div className="text-center py-16 px-4">
-        <h2 className="text-3xl md:text-5xl font-bold mb-4">{title}</h2>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-3xl md:text-5xl font-bold mb-4 text-foreground"
+        >
+          {title}
+        </motion.h2>
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1 }}
+          className="text-lg text-muted-foreground max-w-2xl mx-auto"
+        >
           {subtitle}
-        </p>
+        </motion.p>
       </div>
 
+      {/* Timeline Container */}
       <div className="relative max-w-6xl mx-auto px-4 pb-24">
         <div className="relative mx-auto">
-          <div
-            className={cn(getConnectorClasses(), "h-full absolute top-0 z-10")}
-          ></div>
+          {/* Background Connector Line */}
+          <div style={getConnectorStyle()} />
 
           {/* Enhanced Progress Indicator with Traveling Glow */}
           {progressIndicator && (
@@ -389,15 +619,21 @@ export const ScrollTimeline = ({
                   width: progressLineWidth,
                   left: "50%",
                   transform: "translateX(-50%)",
-                  borderRadius:
-                    progressLineCap === "round" ? "9999px" : "0px",
-                  background: `linear-gradient(to bottom, #22d3ee, #6366f1, #a855f7)`,
+                  borderRadius: progressLineCap === "round" ? "9999px" : "0px",
+                  background: `linear-gradient(
+                    to bottom,
+                    ${glowColor},
+                    ${glowColor}cc,
+                    ${glowColor}99
+                  )`,
                   boxShadow: `
-                    0 0 15px rgba(99,102,241,0.5),
-                    0 0 25px rgba(168,85,247,0.3)
+                    0 0 10px ${glowColor}60,
+                    0 0 20px ${glowColor}40,
+                    0 0 30px ${glowColor}20
                   `,
                 }}
               />
+
               {/* The traveling glow "comet" at the head of the line */}
               <motion.div
                 className="absolute z-20"
@@ -409,21 +645,25 @@ export const ScrollTimeline = ({
                 }}
               >
                 <motion.div
-                  className="w-5 h-5 rounded-full"
+                  className="w-4 h-4 rounded-full"
                   style={{
-                    background:
-                      "radial-gradient(circle, rgba(168,85,247,0.8) 0%, rgba(99,102,241,0.5) 40%, rgba(34,211,238,0) 70%)",
+                    background: `radial-gradient(
+                      circle,
+                      ${glowColor}ff 0%,
+                      ${glowColor}cc 30%,
+                      ${glowColor}00 70%
+                    )`,
                     boxShadow: `
-                      0 0 15px 4px rgba(168, 85, 247, 0.6),
-                      0 0 25px 8px rgba(99, 102, 241, 0.4),
-                      0 0 40px 15px rgba(34, 211, 238, 0.2)
+                      0 0 10px 3px ${glowColor}99,
+                      0 0 20px 6px ${glowColor}66,
+                      0 0 30px 10px ${glowColor}33
                     `,
                   }}
                   animate={{
                     scale: [1, 1.3, 1],
                   }}
                   transition={{
-                    duration: 2,
+                    duration: 1.5,
                     repeat: Infinity,
                     ease: "easeInOut",
                   }}
@@ -432,6 +672,7 @@ export const ScrollTimeline = ({
             </>
           )}
 
+          {/* Timeline Events */}
           <div className="relative z-20">
             {events.map((event, index) => (
               <TimelineItem
@@ -448,6 +689,7 @@ export const ScrollTimeline = ({
                 perspective={perspective}
                 dateFormat={dateFormat}
                 animationOrder={animationOrder}
+                glowColor={glowColor}
                 setRef={(el) => {
                   timelineRefs.current[index] = el;
                 }}

@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { motion, useInView } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface DynamicNavigationProps {
   /** Navigation links */
@@ -9,7 +11,7 @@ export interface DynamicNavigationProps {
     id: string;
     label: string;
     href: string;
-    icon?: React.ReactNode;
+    icon: React.ReactNode;
   }[];
   /** Background color */
   backgroundColor?: string;
@@ -25,7 +27,7 @@ export interface DynamicNavigationProps {
   showLabelsOnMobile?: boolean;
   /** Callback when a link is clicked */
   onLinkClick?: (id: string) => void;
-  /** Initially active link ID */
+  /** Currently active link ID */
   activeLink?: string;
   /** Enable ripple effect on click */
   enableRipple?: boolean;
@@ -50,7 +52,7 @@ export const DynamicNavigation = ({
   );
 
   const defaultThemeStyles = {
-    bg: backgroundColor || "bg-background",
+    bg: backgroundColor || "bg-background/95",
     border: "border-border",
     text: textColor || "text-foreground",
     highlight: highlightColor || "bg-primary/20",
@@ -138,82 +140,122 @@ export const DynamicNavigation = ({
   }, [activeLink]);
 
   return (
-    <nav
-      ref={navRef}
-      className={cn(
-        `relative rounded-full backdrop-blur-md border shadow-lg transition-all duration-300`,
-        defaultThemeStyles.bg,
-        defaultThemeStyles.border,
-        defaultThemeStyles.glow,
-        className
-      )}
-      style={{
-        backgroundColor: backgroundColor,
-        color: textColor,
-      }}
-    >
-      {/* Background highlight */}
-      <div
-        ref={highlightRef}
+    <TooltipProvider delayDuration={0}>
+      <nav
+        ref={navRef}
         className={cn(
-          `absolute top-0 left-0 h-full rounded-full transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] z-0`,
-          defaultThemeStyles.highlight
+          `relative rounded-full backdrop-blur-xl border shadow-lg transition-all duration-300`,
+          // More substantial shadow
+          "shadow-[0_8px_30px_rgba(0,0,0,0.12)]",
+          "dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)]",
+          defaultThemeStyles.bg,
+          defaultThemeStyles.border,
+          defaultThemeStyles.glow,
+          className
         )}
         style={{
-          backgroundColor: highlightColor,
+          backgroundColor: backgroundColor,
+          color: textColor,
         }}
-      />
+      >
+        {/* Background highlight */}
+        <div
+          ref={highlightRef}
+          className={cn(
+            `absolute top-0 left-0 h-full rounded-full transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] z-0`,
+            defaultThemeStyles.highlight
+          )}
+          style={{
+            backgroundColor: highlightColor,
+          }}
+        />
 
-      <ul className="flex justify-between items-center gap-1 sm:gap-2 py-2 px-1 relative z-10">
-        {links.map((link) => (
-          <li
-            key={link.id}
-            className="rounded-full"
-            id={`nav-item-${link.id}`}
-          >
-            <a
-              href={link.href}
-              className={cn(
-                `flex gap-1 items-center justify-center h-8 md:h-9 text-xs md:text-sm rounded-full font-medium transition-all duration-300 hover:scale-105 relative overflow-hidden px-3 sm:px-4`,
-                defaultThemeStyles.text,
-                active === link.id && "font-semibold text-primary"
-              )}
-              onClick={(e) => {
-                e.preventDefault();
-                handleLinkClick(link.id, e);
-              }}
-              onMouseEnter={() => handleLinkHover(link.id)}
-              onMouseLeave={() => updateHighlightPosition()}
-            >
-              {link.icon && (
-                <span className="text-current text-sm">
-                  {link.icon}
-                </span>
-              )}
-              <span className={cn(showLabelsOnMobile ? "flex" : "hidden sm:flex")}>
-                {link.label}
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
+        <ul className="flex justify-between items-center gap-1 py-2 px-2 relative z-10">
+          {links.map((link) => {
+            const isActive = active === link.id;
+            
+            return (
+              <li
+                key={link.id}
+                className="rounded-full"
+                id={`nav-item-${link.id}`}
+              >
+                {/* Show tooltip only for inactive items */}
+                {!isActive ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <a
+                        href={link.href}
+                        className={cn(
+                          `flex items-center justify-center h-10 rounded-full font-medium transition-all duration-300 hover:scale-105 relative overflow-hidden px-3`,
+                          defaultThemeStyles.text,
+                          isActive && "font-semibold text-primary"
+                        )}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleLinkClick(link.id, e);
+                        }}
+                        onMouseEnter={() => handleLinkHover(link.id)}
+                        onMouseLeave={() => updateHighlightPosition()}
+                      >
+                        <span className="text-current text-lg">
+                          {link.icon}
+                        </span>
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      side="bottom" 
+                      className="bg-popover border-border"
+                    >
+                      <p className="text-foreground">{link.label}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  /* Active item - show icon AND label */
+                  <a
+                    href={link.href}
+                    className={cn(
+                      `flex items-center justify-center gap-2 h-10 rounded-full font-medium transition-all duration-300 hover:scale-105 relative overflow-hidden px-4`,
+                      defaultThemeStyles.text,
+                      isActive && "font-semibold text-primary"
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleLinkClick(link.id, e);
+                    }}
+                    onMouseEnter={() => handleLinkHover(link.id)}
+                    onMouseLeave={() => updateHighlightPosition()}
+                  >
+                    <span className="text-current text-lg">
+                      {link.icon}
+                    </span>
+                    <span className="text-sm whitespace-nowrap">
+                      {link.label}
+                    </span>
+                  </a>
+                )}
+              </li>
+            );
+          })}
+        </ul>
 
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            @keyframes ripple {
-              to {
-                transform: scale(4);
-                opacity: 0;
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              @keyframes ripple {
+                to {
+                  transform: scale(4);
+                  opacity: 0;
+                }
               }
-            }
-            .animate-ripple {
-              animation: ripple 0.6s linear;
-            }
-          `,
-        }}
-      />
-    </nav>
+              .animate-ripple {
+                animation: ripple 0.6s linear;
+              }
+            `,
+          }}
+        />
+      </nav>
+    </TooltipProvider>
   );
 };
 

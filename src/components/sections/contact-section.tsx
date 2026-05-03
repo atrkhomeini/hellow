@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Send, Mail, Phone, CheckCircle2 } from "lucide-react";
-import { FaGithub, FaLinkedin } from "react-icons/fa";
+import { FaGithub, FaLinkedin, FaWhatsapp, FaInstagram } from "react-icons/fa";
 import { Wrapper3D } from "@/components/ui/3d-wrapper";
 import { usePortfolioStore } from "@/store/portfolio-store";
 import { cn } from "@/lib/utils";
@@ -14,8 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 const platformIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   github: FaGithub,
   linkedin: FaLinkedin,
+  whatsapp: FaWhatsapp,
+  instagram: FaInstagram,
   email: Mail,
-  whatsapp: Phone,
 };
 
 const platformColors: Record<string, string> = {
@@ -23,6 +24,7 @@ const platformColors: Record<string, string> = {
   linkedin: "#0077b5",
   email: "#3ecf8e",
   whatsapp: "#25d366",
+  instagram: "#e1306c",
 };
 
 export function ContactSection() {
