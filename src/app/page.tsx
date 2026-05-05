@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut, signIn } from "next-auth/react";
-import { Home, Code2, Briefcase, FolderKanban, Heart, Mail, Settings, LogOut, Lock, Loader2, User } from "lucide-react";
+import { Home, Code2, Briefcase, FolderKanban, Heart, Mail, Settings, LogOut, Lock, Loader2, User, Coffee } from "lucide-react";
 import { HeroSection } from "@/components/sections/hero-section";
 import { SkillsSection } from "@/components/sections/skills-section";
 import { ExperienceSection } from "@/components/sections/experience-section";
@@ -351,10 +351,25 @@ export default function HomePage() {
 
             {/* Footer */}
             <footer className="py-8 px-4 border-t border-border bg-surface-100">
-              <div className="max-w-6xl mx-auto text-center">
-                <p className="text-muted-foreground text-sm">
-                  © {new Date().getFullYear()} Portfolio. Built with Next.js and ❤️
-                </p>
+              <div className="max-w-6xl mx-auto">
+                <div className="flex flex-col items-center gap-4">
+                  {/* Logo */}
+                  <a href="#hero" className="hover:opacity-80 transition-opacity">
+                    <img
+                      src="/logo.png"
+                      alt="ATRK Logo"
+                      className="w-8 h-8 object-contain"
+                    />
+                  </a>
+                  
+                  {/* Copyright */}
+                  <p className="text-muted-foreground text-sm flex items-center gap-2">
+                    © {new Date().getFullYear()} Portfolio. Built with Coffee 
+                    <Coffee className="w-4 h-4 text-amber-500" />
+                    and 
+                    <Heart className="w-4 h-4 text-red-500" />
+                  </p>
+                </div>
               </div>
             </footer>
           </motion.main>

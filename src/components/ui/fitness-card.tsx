@@ -4,34 +4,52 @@ import { motion } from "framer-motion";
 import { Dumbbell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Supabase green glow color
+const GLOW_COLOR = "#3ecf8e";
+
 interface FitnessCardProps {
   title?: string;
   data: Record<string, string>;
   className?: string;
+  glowColor?: string;
 }
 
-export function FitnessCard({ title, data, className }: FitnessCardProps) {
+export function FitnessCard({ 
+  title, 
+  data, 
+  className,
+  glowColor = GLOW_COLOR 
+}: FitnessCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
+      whileHover={{
+        boxShadow: `0 0 30px ${glowColor}30, 0 0 60px ${glowColor}15, 0 0 100px ${glowColor}08`,
+      }}
+      transition={{ duration: 0.3 }}
       className={cn(
         "rounded-2xl border border-border bg-card overflow-hidden",
-        "hover:border-primary/30 transition-colors",
+        "transition-all duration-500 ease-out cursor-pointer group",
         className
       )}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 p-5 border-b border-border">
-        <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+      <div className="flex items-center gap-3 p-5 border-b border-border group-hover:border-primary/20 transition-colors">
+        <motion.div 
+          className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center"
+          whileHover={{
+            boxShadow: `0 0 20px ${glowColor}50`,
+          }}
+        >
           <Dumbbell className="w-5 h-5 text-green-500" />
-        </div>
+        </motion.div>
         <h3 className="text-lg font-bold text-foreground">Fitness & Analytics</h3>
       </div>
 
       {/* 3D Model Embed */}
-      <div className="aspect-video bg-surface-200">
+      <div className="aspect-video bg-surface-200 group-hover:bg-surface-300 transition-colors">
         <iframe
           title="The Barbell Squat Muscles & Anatomy"
           frameBorder="0"
@@ -55,16 +73,22 @@ export function FitnessCard({ title, data, className }: FitnessCardProps) {
           {data.personalRecord && (
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Personal Record</p>
-              <p className="font-bold text-primary text-lg">
+              <motion.p 
+                className="font-bold text-lg"
+                style={{ color: glowColor }}
+                whileHover={{
+                  textShadow: `0 0 20px ${glowColor}60`,
+                }}
+              >
                 {data.personalRecord}
-              </p>
+              </motion.p>
             </div>
           )}
         </div>
 
         {/* Quote */}
         {data.quote && (
-          <p className="text-sm text-muted-foreground italic border-t border-border pt-3">
+          <p className="text-sm text-muted-foreground italic border-t border-border pt-3 group-hover:border-primary/20 transition-colors">
             "{data.quote}"
           </p>
         )}

@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+// Supabase green glow color
+const GLOW_COLOR = "#3ecf8e";
+
 interface ExpandableCardProps {
   title: string;
   src: string;
@@ -21,6 +24,7 @@ interface ExpandableCardProps {
     github?: string;
   };
   category?: string;
+  glowColor?: string;
   [key: string]: any;
 }
 
@@ -34,9 +38,11 @@ export function ExpandableCard({
   tags = [],
   links,
   category,
+  glowColor = GLOW_COLOR,
   ...props
 }: ExpandableCardProps) {
   const [active, setActive] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
   const cardRef = React.useRef<HTMLDivElement>(null);
   const id = React.useId();
 
@@ -89,6 +95,9 @@ export function ExpandableCard({
                 "relative flex h-full max-h-[90vh] w-full max-w-4xl flex-col overflow-auto rounded-2xl border border-border bg-card shadow-2xl",
                 classNameExpanded
               )}
+              style={{
+                boxShadow: `0 0 50px ${glowColor}20, 0 0 100px ${glowColor}10, 0 25px 50px -12px rgba(0, 0, 0, 0.5)`,
+              }}
               {...props}
             >
               {/* Image */}
@@ -127,8 +136,19 @@ export function ExpandableCard({
                     <motion.button
                       aria-label="Close card"
                       layoutId={`button-${title}-${id}`}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-surface-300 text-foreground transition-colors hover:bg-surface-200"
+                      className={cn(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                        "border border-border bg-surface-300 text-foreground",
+                        "transition-all duration-300"
+                      )}
+                      style={{
+                        boxShadow: isHovered ? `0 0 20px ${glowColor}40` : "none",
+                      }}
                       onClick={() => setActive(false)}
+                      whileHover={{
+                        boxShadow: `0 0 20px ${glowColor}60`,
+                        borderColor: `${glowColor}50`,
+                      }}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -181,7 +201,7 @@ export function ExpandableCard({
                           <Badge
                             key={tag.id}
                             variant="outline"
-                            className="text-sm"
+                            className="text-sm hover:border-primary/50 transition-colors"
                           >
                             {tag.name}
                           </Badge>
@@ -194,7 +214,13 @@ export function ExpandableCard({
                   {links && (links.demo || links.github) && (
                     <div className="flex gap-3 mt-6 pt-6 border-t border-border">
                       {links.demo && (
-                        <Button asChild className="bg-primary hover:bg-primary/90">
+                        <Button 
+                          asChild 
+                          className="transition-all duration-300 hover:shadow-lg"
+                          style={{
+                            backgroundColor: glowColor,
+                          }}
+                        >
                           <a href={links.demo} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="w-4 h-4 mr-2" />
                             Live Demo
@@ -202,7 +228,11 @@ export function ExpandableCard({
                         </Button>
                       )}
                       {links.github && (
-                        <Button asChild variant="outline">
+                        <Button 
+                          asChild 
+                          variant="outline"
+                          className="transition-all duration-300"
+                        >
                           <a href={links.github} target="_blank" rel="noopener noreferrer">
                             <FaGithub className="w-4 h-4 mr-2" />
                             View Code
@@ -227,9 +257,17 @@ export function ExpandableCard({
         onClick={() => setActive(true)}
         className={cn(
           "flex cursor-pointer flex-col rounded-2xl border border-border bg-card overflow-hidden",
-          "hover:border-primary/30 transition-colors group",
+          "transition-all duration-500 ease-out group",
           className
         )}
+        style={{
+          boxShadow: isHovered
+            ? `0 0 30px ${glowColor}30, 0 0 60px ${glowColor}15, 0 0 100px ${glowColor}08`
+            : "none",
+          borderColor: isHovered ? `${glowColor}50` : undefined,
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Image */}
         <div className="relative overflow-hidden">
@@ -278,7 +316,17 @@ export function ExpandableCard({
             <motion.button
               aria-label="Open card"
               layoutId={`button-${title}-${id}`}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-surface-300 text-foreground transition-colors hover:bg-surface-200"
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                "border border-border bg-surface-300 text-foreground",
+                "transition-all duration-300"
+              )}
+              style={{
+                boxShadow: isHovered ? `0 0 15px ${glowColor}40` : "none",
+              }}
+              whileHover={{
+                boxShadow: `0 0 20px ${glowColor}60`,
+              }}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -301,7 +349,11 @@ export function ExpandableCard({
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {tags.slice(0, 3).map((tag) => (
-                <Badge key={tag.id} variant="outline" className="text-xs">
+                <Badge 
+                  key={tag.id} 
+                  variant="outline" 
+                  className="text-xs transition-colors group-hover:border-primary/30"
+                >
                   {tag.name}
                 </Badge>
               ))}

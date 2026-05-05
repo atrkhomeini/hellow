@@ -15,15 +15,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Portfolio | Data Scientist & Full Stack Developer",
+  title: "Portfolio | Data Scientist & Business Intelligence Developer",
   description: "A comprehensive portfolio showcasing projects, skills, and experience.",
   keywords: ["Portfolio", "Developer", "Full Stack", "Data Scientist", "Python", "SQL"],
   authors: [{ name: "Developer" }],
   icons: {
-    icon: "/logo.svg",
+    icon: [
+      { url: "/logo.ico", sizes: "any" },
+      { url: "/logo.png", type: "image/png", sizes: "32x32" },
+    ],
   },
   openGraph: {
-    title: "Portfolio | Data Scientist & Full Stack Developer",
+    title: "Portfolio | Data Scientist & Business Intelligence Developer",
     description: "A comprehensive portfolio showcasing projects, skills, and experience.",
     type: "website",
   },

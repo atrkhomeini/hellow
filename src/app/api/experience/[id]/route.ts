@@ -23,35 +23,57 @@ export async function PUT(
     const {
       title,
       company,
-      location,
       startDate,
       endDate,
       isCurrent,
       description,
-      imageUrl,
-      videoUrl,
-      projectUrl,
       isPublished,
+      externalLinks,
+      mediaUrls,
     } = body;
+
+    // Convert arrays to JSON strings or null for Prisma
+    const externalLinksValue = externalLinks 
+      ? (Array.isArray(externalLinks) 
+          ? (externalLinks.length > 0 ? JSON.stringify(externalLinks) : null)
+          : externalLinks)
+      : null;
+    
+    const mediaUrlsValue = mediaUrls
+      ? (Array.isArray(mediaUrls)
+          ? (mediaUrls.length > 0 ? JSON.stringify(mediaUrls) : null)
+          : mediaUrls)
+      : null;
 
     const experience = await db.experience.update({
       where: { id },
       data: {
         title,
         company,
-        location,
-        startDate: startDate ? new Date(startDate) : undefined,
-        endDate: endDate ? new Date(endDate) : null,
+        startDate,
+        endDate: endDate || null,
         isCurrent,
         description,
-        imageUrl,
-        videoUrl,
-        projectUrl,
         isPublished,
+        externalLinks: externalLinksValue,
+        mediaUrls: mediaUrlsValue,
       },
     });
 
-    return NextResponse.json(experience);
+    return NextResponse.json({
+      id: experience.id,
+      title: experience.title,
+      company: experience.company,
+      companyLogo: experience.companyLogo,
+      startDate: experience.startDate,
+      endDate: experience.endDate,
+      isCurrent: experience.isCurrent,
+      description: experience.description,
+      mediaUrls: experience.mediaUrls ? JSON.parse(experience.mediaUrls) : [],
+      externalLinks: experience.externalLinks ? JSON.parse(experience.externalLinks) : [],
+      order: experience.order,
+      isPublished: experience.isPublished,
+    });
   } catch (error) {
     console.error("Error updating experience:", error);
     return NextResponse.json(

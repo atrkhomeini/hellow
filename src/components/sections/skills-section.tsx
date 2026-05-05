@@ -4,6 +4,10 @@ import { motion } from "framer-motion";
 import { usePortfolioStore } from "@/store/portfolio-store";
 import ChainCarousel, { ChainItem } from "@/components/lightswind/chain-carousel";
 import { Code2, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+// Supabase green glow color
+const GLOW_COLOR = "#3ecf8e";
 
 // Category labels
 const categoryLabels: Record<string, string> = {
@@ -64,7 +68,7 @@ export function SkillsSection() {
           </p>
         </motion.div>
 
-        {/* Chain Carousel */}
+        {/* Chain Carousel - UNCHANGED */}
         {allCarouselItems.length > 0 ? (
           <ChainCarousel
             items={allCarouselItems}
@@ -77,7 +81,7 @@ export function SkillsSection() {
           </div>
         )}
 
-        {/* Category Summary */}
+        {/* Category Summary Cards - ENHANCED WITH GLOW */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -85,36 +89,71 @@ export function SkillsSection() {
           className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6"
         >
           {Object.entries(groupedSkills).map(([category, categorySkills]) => (
-            <div
+            <motion.div
               key={category}
-              className="p-6 rounded-2xl border border-border bg-card hover:border-primary/30 transition-colors"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className={cn(
+                "relative p-6 rounded-2xl border border-border bg-card",
+                "transition-all duration-500 ease-out cursor-pointer group overflow-hidden"
+              )}
+              whileHover={{
+                boxShadow: `0 0 30px ${GLOW_COLOR}30, 0 0 60px ${GLOW_COLOR}15, 0 0 100px ${GLOW_COLOR}08`,
+                borderColor: `${GLOW_COLOR}50`,
+              }}
+              transition={{ duration: 0.3 }}
             >
-              <h3 className="text-lg font-semibold text-foreground mb-4 capitalize">
-                {categoryLabels[category] || category}
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {categorySkills.slice(0, 6).map((skill) => (
-                  <span
-                    key={skill.id}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 text-sm rounded-full bg-surface-300 text-foreground border border-border"
-                  >
-                    {skill.iconUrl && (
-                      <img
-                        src={skill.iconUrl}
-                        alt={skill.name}
-                        className="w-4 h-4 object-contain"
-                      />
-                    )}
-                    {skill.name}
-                  </span>
-                ))}
-                {categorySkills.length > 6 && (
-                  <span className="px-3 py-1 text-sm rounded-full bg-surface-300 text-muted-foreground border border-border">
-                    +{categorySkills.length - 6} more
-                  </span>
-                )}
+              {/* Glow overlay gradient */}
+              <div 
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                style={{
+                  background: `radial-gradient(ellipse at center, ${GLOW_COLOR}08 0%, transparent 70%)`,
+                }}
+              />
+
+              {/* Content */}
+              <div className="relative z-10">
+                <h3 className="text-lg font-semibold text-foreground mb-4 capitalize">
+                  {categoryLabels[category] || category}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {categorySkills.slice(0, 6).map((skill, index) => (
+                    <motion.span
+                      key={skill.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.05 }}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full",
+                        "bg-surface-300 text-foreground border border-border",
+                        "transition-all duration-300"
+                      )}
+                      whileHover={{
+                        scale: 1.05,
+                        boxShadow: `0 0 15px ${GLOW_COLOR}40`,
+                        borderColor: `${GLOW_COLOR}60`,
+                      }}
+                    >
+                      {skill.iconUrl && (
+                        <img
+                          src={skill.iconUrl}
+                          alt={skill.name}
+                          className="w-4 h-4 object-contain"
+                        />
+                      )}
+                      {skill.name}
+                    </motion.span>
+                  ))}
+                  {categorySkills.length > 6 && (
+                    <span className="px-3 py-1.5 text-sm rounded-full bg-surface-300 text-muted-foreground border border-border">
+                      +{categorySkills.length - 6} more
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </motion.div>
       </div>

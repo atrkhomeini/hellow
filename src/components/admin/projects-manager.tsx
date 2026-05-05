@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, Reorder } from "framer-motion";
 import { Plus, Trash2, GripVertical, ExternalLink } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import { usePortfolioStore, Project } from "@/store/portfolio-store";
@@ -44,6 +44,30 @@ export function ProjectsManager() {
     skillIds: [] as string[],
     isPublished: true,
   });
+
+  // Sort projects by order
+  const sortedProjects = [...projects].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  // Handle reorder
+  const handleReorder = async (newOrder: Project[]) => {
+    setProjects(newOrder);
+    
+    // Update order in database
+    try {
+      await fetch("/api/projects", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projects: newOrder.map((proj, index) => ({
+            id: proj.id,
+            order: index,
+          })),
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to update order:", error);
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -161,7 +185,7 @@ export function ProjectsManager() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Projects</h2>
-          <p className="text-muted-foreground">Manage your portfolio projects</p>
+          <p className="text-muted-foreground">Manage your portfolio projects (drag to reorder)</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -283,20 +307,24 @@ export function ProjectsManager() {
         </Dialog>
       </div>
 
-      {/* Projects List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {projects.map((project) => (
-          <motion.div
+      {/* Projects List with Drag & Drop */}
+      <Reorder.Group
+        axis="y"
+        values={sortedProjects}
+        onReorder={handleReorder}
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
+        {sortedProjects.map((project) => (
+          <Reorder.Item
             key={project.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            value={project}
             className={cn(
               "p-4 rounded-lg border border-border bg-card",
-              "hover:border-primary/30 transition-colors"
+              "hover:border-primary/30 transition-colors cursor-grab active:cursor-grabbing"
             )}
           >
             <div className="flex items-start gap-3">
-              <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab mt-1" />
+              <GripVertical className="w-5 h-5 text-muted-foreground mt-1 flex-shrink-0" />
 
               {/* Project Thumbnail */}
               {project.imageUrl && project.imageUrl.trim() !== "" && (
@@ -342,6 +370,7 @@ export function ProjectsManager() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline text-sm inline-flex items-center"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <ExternalLink className="w-4 h-4 mr-1" />
                       Demo
@@ -353,6 +382,7 @@ export function ProjectsManager() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-muted-foreground hover:text-foreground text-sm inline-flex items-center"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <FaGithub className="w-4 h-4 mr-1" />
                       Code
@@ -367,13 +397,23 @@ export function ProjectsManager() {
                   onCheckedChange={(checked) => handleTogglePublished(project.id, checked)}
                 />
                 <div className="flex gap-1">
-                  <Button variant="outline" size="sm" onClick={() => openEdit(project)}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEdit(project);
+                    }}
+                  >
                     Edit
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleDelete(project.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(project.id);
+                    }}
                     className="text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -381,9 +421,9 @@ export function ProjectsManager() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </Reorder.Item>
         ))}
-      </div>
+      </Reorder.Group>
 
       {projects.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">

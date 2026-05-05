@@ -26,18 +26,7 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Transform to match frontend expectations
-    const transformed = messages.map(msg => ({
-      id: msg.id,
-      name: msg.name,
-      email: msg.email,
-      subject: msg.subject,
-      content: msg.message,
-      isRead: msg.isRead,
-      createdAt: msg.createdAt.toISOString(),
-    }));
-
-    return NextResponse.json(transformed);
+    return NextResponse.json(messages);
   } catch (error) {
     console.error("Error fetching messages:", error);
     return NextResponse.json(
@@ -53,12 +42,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, email, subject, content } = body;
 
+    // Validate required fields
+    if (!name || !email || !content) {
+      return NextResponse.json(
+        { error: "Name, email, and content are required" },
+        { status: 400 }
+      );
+    }
+
     const message = await db.message.create({
       data: {
         name,
         email,
-        subject,
-        message: content,
+        subject: subject || null,
+        content, // Fixed: use 'content' not 'message'
         isRead: false,
       },
     });
@@ -68,7 +65,7 @@ export async function POST(request: NextRequest) {
       name: message.name,
       email: message.email,
       subject: message.subject,
-      content: message.message,
+      content: message.content,
       isRead: message.isRead,
       createdAt: message.createdAt.toISOString(),
     });
@@ -106,7 +103,7 @@ export async function PUT(request: NextRequest) {
       name: message.name,
       email: message.email,
       subject: message.subject,
-      content: message.message,
+      content: message.content,
       isRead: message.isRead,
       createdAt: message.createdAt.toISOString(),
     });
