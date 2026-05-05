@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, Reorder } from "framer-motion";
 import { Plus, Trash2, GripVertical, Code2, Wrench, Languages } from "lucide-react";
 import { usePortfolioStore, Skill } from "@/store/portfolio-store";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,30 @@ export function SkillsManager() {
     color: "",
     isActive: true,
   });
+
+  // Handle reorder for a specific category
+  const handleReorder = async (category: string, newOrder: Skill[]) => {
+    // Update local state
+    const otherSkills = skills.filter((s) => s.category !== category);
+    const updatedSkills = [...otherSkills, ...newOrder];
+    setSkills(updatedSkills);
+    
+    // Update order in database
+    try {
+      await fetch("/api/skills", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skills: newOrder.map((skill, index) => ({
+            id: skill.id,
+            order: index,
+          })),
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to update order:", error);
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -149,7 +173,7 @@ export function SkillsManager() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Skills</h2>
-          <p className="text-muted-foreground">Manage your skills and expertise</p>
+          <p className="text-muted-foreground">Manage your skills and expertise (drag to reorder)</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -257,16 +281,18 @@ export function SkillsManager() {
         </Dialog>
       </div>
 
-      {/* Skills List */}
-      <div className="space-y-3">
+      {/* Skills List with Drag & Drop */}
+      <div className="space-y-6">
         {categories.map((category) => {
-          const categorySkills = skills.filter((s) => s.category === category.value);
+          const categorySkills = skills
+            .filter((s) => s.category === category.value)
+            .sort((a, b) => (a.order || 0) - (b.order || 0));
           const Icon = category.icon;
 
           if (categorySkills.length === 0) return null;
 
           return (
-            <div key={category.value} className="mb-6">
+            <div key={category.value}>
               <div className="flex items-center gap-2 mb-3">
                 <Icon className="w-4 h-4 text-primary" />
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
@@ -274,18 +300,22 @@ export function SkillsManager() {
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Reorder.Group
+                axis="y"
+                values={categorySkills}
+                onReorder={(newOrder) => handleReorder(category.value, newOrder)}
+                className="grid grid-cols-1 md:grid-cols-2 gap-3"
+              >
                 {categorySkills.map((skill) => (
-                  <motion.div
+                  <Reorder.Item
                     key={skill.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    value={skill}
                     className={cn(
                       "flex items-center gap-3 p-3 rounded-lg border border-border bg-card",
-                      "hover:border-primary/30 transition-colors"
+                      "hover:border-primary/30 transition-colors cursor-grab active:cursor-grabbing"
                     )}
                   >
-                    <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
+                    <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
 
                     {/* Icon Preview */}
                     <div
@@ -313,21 +343,31 @@ export function SkillsManager() {
                         checked={skill.isActive}
                         onCheckedChange={(checked) => handleToggleActive(skill.id, checked)}
                       />
-                      <Button variant="outline" size="sm" onClick={() => openEdit(skill)}>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(skill);
+                        }}
+                      >
                         Edit
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(skill.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(skill.id);
+                        }}
                         className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                  </motion.div>
+                  </Reorder.Item>
                 ))}
-              </div>
+              </Reorder.Group>
             </div>
           );
         })}

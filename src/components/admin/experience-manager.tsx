@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, Reorder } from "framer-motion";
 import { Plus, Trash2, GripVertical, Calendar, Building2, ExternalLink, List, X } from "lucide-react";
 import { usePortfolioStore, Experience } from "@/store/portfolio-store";
 import { Button } from "@/components/ui/button";
@@ -131,6 +131,30 @@ export function ExperienceManager() {
     externalLinks: "",
     isPublished: true,
   });
+
+  // Sort experiences by order
+  const sortedExperiences = [...experiences].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  // Handle reorder
+  const handleReorder = async (newOrder: Experience[]) => {
+    setExperiences(newOrder);
+    
+    // Update order in database
+    try {
+      await fetch("/api/experience", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          experiences: newOrder.map((exp, index) => ({
+            id: exp.id,
+            order: index,
+          })),
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to update order:", error);
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -263,7 +287,7 @@ export function ExperienceManager() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Experience</h2>
-          <p className="text-muted-foreground">Manage your career timeline</p>
+          <p className="text-muted-foreground">Manage your career timeline (drag to reorder)</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -372,20 +396,24 @@ export function ExperienceManager() {
         </Dialog>
       </div>
 
-      {/* Experience List */}
-      <div className="space-y-4">
-        {experiences.map((exp) => (
-          <motion.div
+      {/* Experience List with Drag & Drop */}
+      <Reorder.Group
+        axis="y"
+        values={sortedExperiences}
+        onReorder={handleReorder}
+        className="space-y-3"
+      >
+        {sortedExperiences.map((exp) => (
+          <Reorder.Item
             key={exp.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            value={exp}
             className={cn(
               "p-4 rounded-lg border border-border bg-card",
-              "hover:border-primary/30 transition-colors"
+              "hover:border-primary/30 transition-colors cursor-grab active:cursor-grabbing"
             )}
           >
             <div className="flex items-start gap-4">
-              <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab mt-1" />
+              <GripVertical className="w-5 h-5 text-muted-foreground mt-1 flex-shrink-0" />
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -433,18 +461,6 @@ export function ExperienceManager() {
                     </ul>
                   </div>
                 )}
-                
-                {exp.externalLinks && (
-                  <a
-                    href={exp.externalLinks}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-primary mt-2 hover:underline"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    View Project
-                  </a>
-                )}
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
@@ -455,23 +471,29 @@ export function ExperienceManager() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => openEdit(exp)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEdit(exp);
+                  }}
                 >
                   Edit
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => handleDelete(exp.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(exp.id);
+                  }}
                   className="text-muted-foreground hover:text-destructive"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             </div>
-          </motion.div>
+          </Reorder.Item>
         ))}
-      </div>
+      </Reorder.Group>
 
       {experiences.length === 0 && (
         <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-lg">

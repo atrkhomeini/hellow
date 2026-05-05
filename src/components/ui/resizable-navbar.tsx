@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Menu, X, User } from "lucide-react";
+import Image from "next/image";
 
 // ==================== Types ====================
 
@@ -316,8 +317,13 @@ export function NavbarLogo({ className }: NavbarLogoProps) {
         className
       )}
     >
-      <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-        <User className="w-4 h-4 text-primary-foreground" />
+      {/* ATRK Logo */}
+      <div className="relative w-10 h-10 rounded-lg overflow-hidden">
+        <img
+          src="/logo.png"
+          alt="ATRK Logo"
+          className="w-full h-full object-contain"
+        />
       </div>
     </a>
   );
