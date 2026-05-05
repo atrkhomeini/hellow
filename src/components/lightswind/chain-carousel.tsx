@@ -4,12 +4,12 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, useInView } from "framer-motion";
 import {
   LucideIcon,
-  TrendingUp,
   Search,
   X,
   Code2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 // --- Core Data Interface ---
 export interface ChainItem {
@@ -45,11 +45,14 @@ interface ChainCarouselProps {
 
 // --- Helper Components ---
 
-const CarouselItemCard: React.FC<CarouselItemProps> = ({ chain, side }) => {
+const CarouselItemCard: React.FC<CarouselItemProps> = ({ 
+  chain, 
+  side 
+}) => {
   const { distanceFromCenter, id, name, details, logo, icon: FallbackIcon, color } = chain;
+  const [isHovered, setIsHovered] = useState(false);
   
   const IconComponent = FallbackIcon || Code2;
-  const bgColor = color || "#3ecf8e";
   
   const distance = Math.abs(distanceFromCenter);
   const opacity = 1 - distance / 4;
@@ -59,8 +62,23 @@ const CarouselItemCard: React.FC<CarouselItemProps> = ({ chain, side }) => {
 
   return (
     <motion.div
-      className={`absolute flex items-center gap-4 px-6 py-3 
-        ${side === "left" ? "flex-row-reverse" : "flex-row"}`}
+      className={cn(
+        "absolute flex items-center gap-4 px-6 py-3 rounded-xl cursor-pointer",
+        "transition-all duration-500 ease-out",
+        side === "left" ? "flex-row-reverse" : "flex-row"
+      )}
+      style={{
+        backgroundColor: isHovered ? "rgba(38, 38, 38, 0.6)" : "transparent",
+        backdropFilter: isHovered ? "blur(8px)" : "none",
+        boxShadow: isHovered 
+          ? "0 4px 20px rgba(0, 0, 0, 0.3), 0 0 40px rgba(255, 255, 255, 0.03)"
+          : "none",
+        border: isHovered 
+          ? "1px solid rgba(255, 255, 255, 0.1)"
+          : "1px solid transparent",
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       animate={{
         opacity,
         scale,
@@ -69,18 +87,32 @@ const CarouselItemCard: React.FC<CarouselItemProps> = ({ chain, side }) => {
       }}
       transition={{ duration: 0.4, ease: "easeInOut" }}
     >
-      <div 
-        className="rounded-full border border-muted-foreground/60 dark:border-muted-foreground/40 p-2"
-        style={{ backgroundColor: bgColor }}
+      {/* Icon/Logo Circle - Neutral Dark */}
+      <motion.div 
+        className="rounded-full p-2.5 border border-white/10"
+        style={{ 
+          backgroundColor: "rgba(30, 30, 30, 0.9)",
+        }}
+        animate={isHovered ? { scale: 1.1 } : { scale: 1 }}
+        transition={{ duration: 0.3 }}
       >
         {logo ? (
-          <img src={logo} alt={`${name} logo`} className="size-8 rounded-full object-contain" />
+          <img 
+            src={logo} 
+            alt={`${name} logo`} 
+            className="size-8 rounded-full object-contain" 
+          />
         ) : (
-          <IconComponent className="size-8 text-white" />
+          <IconComponent className="size-8 text-white/80" />
         )}
-      </div>
+      </motion.div>
 
-      <div className={`flex flex-col mx-4 ${side === "left" ? "text-right" : "text-left"}`}>
+      {/* Text Content */}
+      <div className={cn(
+        "flex flex-col mx-4 transition-opacity duration-300",
+        side === "left" ? "text-right" : "text-left",
+        isHovered ? "opacity-100" : "opacity-70"
+      )}>
         <span className="text-md lg:text-lg font-semibold text-foreground whitespace-nowrap">
           {name}
         </span>
@@ -186,7 +218,7 @@ const ChainCarousel: React.FC<ChainCarouselProps> = ({
   const visibleItems = getVisibleItems();
 
   return (
-    <div className={`space-y-20 ${className}`}>
+    <div className={cn("space-y-20", className)}>
       <div className="flex flex-col xl:flex-row max-w-7xl mx-auto px-4 md:px-8 gap-12 justify-center items-center">
         
         {/* Left Section - Carousel */}
@@ -214,26 +246,44 @@ const ChainCarousel: React.FC<ChainCarouselProps> = ({
 
         {/* Middle Section - Text and Search */}
         <div className="flex flex-col text-center gap-4 max-w-md">
-            {currentItem && (
+          {currentItem && (
             <div className="flex flex-col items-center justify-center gap-0 mt-4">
-                <div 
-                className="p-3 rounded-full"
-                style={{ backgroundColor: currentItem.color || "#3ecf8e" }}
-                >
+              {/* Current Item Icon - Neutral */}
+              <motion.div 
+                className="p-3 rounded-full border border-white/10"
+                style={{ backgroundColor: "rgba(30, 30, 30, 0.9)" }}
+                animate={{
+                  boxShadow: [
+                    "0 0 20px rgba(255, 255, 255, 0.05)",
+                    "0 0 30px rgba(255, 255, 255, 0.08)",
+                    "0 0 20px rgba(255, 255, 255, 0.05)",
+                  ],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
                 {currentItem.logo ? (
-                    <img src={currentItem.logo} alt={`${currentItem.name} logo`} className="size-12 rounded-full object-contain" />
+                  <img 
+                    src={currentItem.logo} 
+                    alt={`${currentItem.name} logo`} 
+                    className="size-12 rounded-full object-contain" 
+                  />
                 ) : (
-                    <Code2 className="size-8 text-white" />
+                  <Code2 className="size-8 text-white/80" />
                 )}
-                </div>
-                <h3 className="text-xl xl:text-2xl font-bold text-foreground mt-3">
+              </motion.div>
+              
+              <h3 className="text-xl xl:text-2xl font-bold text-foreground mt-3">
                 {currentItem.name}
-                </h3>
-                <p className="text-sm xl:text-lg text-muted-foreground">
+              </h3>
+              <p className="text-sm xl:text-lg text-muted-foreground">
                 {currentItem.details || currentItem.category}
-                </p>
+              </p>
             </div>
-            )}
+          )}
 
           {/* Search Bar */}
           <div className="mt-6 relative max-w-lg mx-auto xl:mx-0">
@@ -255,7 +305,7 @@ const ChainCarousel: React.FC<ChainCarouselProps> = ({
                 onBlur={() => {
                   setTimeout(() => setShowDropdown(false), 200);
                 }}
-                className="flex-grow bg-background border-border rounded-full pr-10 pl-10 py-2"
+                className="flex-grow bg-background border-border rounded-full pr-10 pl-10 py-2 focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all"
               />
               <Search className="absolute text-muted-foreground w-5 h-5 left-6 pointer-events-none" />
               {searchTerm && (
@@ -265,16 +315,21 @@ const ChainCarousel: React.FC<ChainCarouselProps> = ({
                     setShowDropdown(false);
                     setIsPaused(false);
                   }}
-                  className="absolute right-6 text-muted-foreground hover:text-foreground"
+                  className="absolute right-6 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
 
-            {/* Dropdown */}
+            {/* Dropdown - Neutral */}
             {showDropdown && filteredItems.length > 0 && (
-              <div className="absolute left-0 right-0 mt-2 bg-card rounded-lg border border-border z-20 max-h-60 overflow-y-auto shadow-xl">
+              <div 
+                className="absolute left-0 right-0 mt-2 bg-card rounded-xl border border-white/10 z-20 max-h-60 overflow-y-auto"
+                style={{
+                  boxShadow: "0 10px 40px rgba(0, 0, 0, 0.4)",
+                }}
+              >
                 {filteredItems.slice(0, 10).map((chain) => (
                   <div
                     key={`dropdown-${chain.id}`}
@@ -282,13 +337,26 @@ const ChainCarousel: React.FC<ChainCarouselProps> = ({
                       e.preventDefault();
                       handleSelectChain(chain.id, chain.name);
                     }}
-                    className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-300 transition-colors duration-150 rounded-lg m-2"
-                  >
-                    {chain.logo ? (
-                      <img src={chain.logo} alt={`${chain.name} logo`} className="size-6 rounded-full object-cover" />
-                    ) : (
-                      <Code2 size={24} className="text-primary" />
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200 rounded-lg m-2",
+                      "hover:bg-white/5"
                     )}
+                  >
+                    {/* Neutral icon container */}
+                    <div 
+                      className="rounded-full p-1.5 border border-white/10"
+                      style={{ backgroundColor: "rgba(30, 30, 30, 0.9)" }}
+                    >
+                      {chain.logo ? (
+                        <img 
+                          src={chain.logo} 
+                          alt={`${chain.name} logo`} 
+                          className="size-6 rounded-full object-cover" 
+                        />
+                      ) : (
+                        <Code2 size={24} className="text-white/80" />
+                      )}
+                    </div>
                     <span className="text-foreground font-medium">{chain.name}</span>
                     <span className="ml-auto text-sm text-muted-foreground capitalize">{chain.category}</span>
                   </div>
