@@ -147,3 +147,50 @@ model VerificationToken {
 
   @@id([identifier, token])
 }
+
+// ============================================
+// Brewing Recipe Recommendation System
+// ============================================
+
+// Coffee Beans Master Data
+model Bean {
+  id          String   @id @default(cuid())
+  name        String
+  roaster     String?
+  origin      String?  // Country
+  region      String?  // Specific region
+  altitude    Int?     // meters above sea level
+  process     String?  // Natural, Washed, Honey, etc.
+  variety     String?  // Arabica varieties
+  tasteNotes  String?  // JSON array of taste notes
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  recipes     BeanRecipe[]
+}
+
+// Brewing Recipes Master Data
+model Recipe {
+  id            String   @id @default(cuid())
+  method        String   // V60, Kalita, Aeropress, etc.
+  doseGram      Float    // Coffee dose in grams
+  yieldGram     Float    // Water/coffee yield in grams
+  temperatureC  Int      // Temperature in Celsius
+  grindSize     String   // Fine, Medium, Coarse
+  totalTimeSec  Int      // Total brew time in seconds
+  instructions  String?  // JSON array of step objects
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  beans         BeanRecipe[]
+}
+
+// Junction Table for Many-to-Many Relationship
+model BeanRecipe {
+  beanId    String
+  recipeId  String
+  bean      Bean    @relation(fields: [beanId], references: [id], onDelete: Cascade)
+  recipe    Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@id([beanId, recipeId])
+}

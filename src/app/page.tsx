@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut, signIn } from "next-auth/react";
-import { Home, Code2, Briefcase, FolderKanban, Heart, Mail, Settings, LogOut, Lock, Loader2, User, Coffee } from "lucide-react";
+import { Home, Code2, Briefcase, FolderKanban, Heart, Mail, Settings, LogOut, Lock, Loader2, Coffee } from "lucide-react";
 import { HeroSection } from "@/components/sections/hero-section";
 import { SkillsSection } from "@/components/sections/skills-section";
 import { ExperienceSection } from "@/components/sections/experience-section";
@@ -11,6 +11,7 @@ import { ProjectsSection } from "@/components/sections/projects-section";
 import { TasteSection } from "@/components/sections/taste-section";
 import { ContactSection } from "@/components/sections/contact-section";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import { DockBar } from "@/components/playground/dock-bar";
 import { usePortfolioStore } from "@/store/portfolio-store";
 import Loader from "@/components/kokonutui/loader";
 import { Button } from "@/components/ui/button";
@@ -73,7 +74,6 @@ export default function HomePage() {
     }
   }, [session, setAdminMode]);
 
-  // Track active section on scroll
   useEffect(() => {
     const handleScroll = () => {
       const sections = navItems.map((item) => document.getElementById(item.link.replace("#", "")));
@@ -148,7 +148,6 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <Navbar>
-        {/* Desktop Navigation */}
         <NavBody>
           <NavbarLogo />
           <NavItems
@@ -180,7 +179,6 @@ export default function HomePage() {
           </div>
         </NavBody>
 
-        {/* Mobile Navigation */}
         <MobileNav>
           <MobileNavHeader>
             <NavbarLogo />
@@ -350,10 +348,9 @@ export default function HomePage() {
             <ContactSection />
 
             {/* Footer */}
-            <footer className="py-8 px-4 border-t border-border bg-surface-100">
+            <footer className="py-8 px-4 border-t border-border bg-surface-100 pb-24">
               <div className="max-w-6xl mx-auto">
                 <div className="flex flex-col items-center gap-4">
-                  {/* Logo */}
                   <a href="#hero" className="hover:opacity-80 transition-opacity">
                     <img
                       src="/logo.png"
@@ -361,8 +358,6 @@ export default function HomePage() {
                       className="w-8 h-8 object-contain"
                     />
                   </a>
-                  
-                  {/* Copyright */}
                   <p className="text-muted-foreground text-sm flex items-center gap-2">
                     © {new Date().getFullYear()} Portfolio. Built with Coffee 
                     <Coffee className="w-4 h-4 text-amber-500" />
@@ -375,6 +370,9 @@ export default function HomePage() {
           </motion.main>
         )}
       </AnimatePresence>
+
+      {/* Fixed Dock Bar - Always visible at bottom */}
+      <DockBar />
     </div>
   );
 }

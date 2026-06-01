@@ -12,6 +12,8 @@ import {
   Link2,
   Settings,
   LayoutDashboard,
+  Coffee,
+  ScrollText
 } from "lucide-react";
 import { ProfileManager } from "./profile-manager";
 import { SkillsManager } from "./skills-manager";
@@ -22,6 +24,8 @@ import { MessagesManager } from "./messages-manager";
 import { SocialLinksManager } from "./social-links-manager";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { BeansManager } from "./beans-manager";
+import { RecipesManager } from "./recipes-manager";
 
 const sidebarItems = [
   { id: "profile", label: "Profile", icon: User },
@@ -31,6 +35,8 @@ const sidebarItems = [
   { id: "taste", label: "My Taste", icon: Heart },
   { id: "messages", label: "Messages", icon: Mail },
   { id: "links", label: "Social Links", icon: Link2 },
+  { id: "beans", label: "Beans", icon: Coffee },
+  { id: "recipes", label: "Recipes", icon: ScrollText },
 ];
 
 export function AdminDashboard() {
@@ -54,6 +60,10 @@ export function AdminDashboard() {
         return <SocialLinksManager />;
       default:
         return <ProfileManager />;
+      case "beans":
+        return <BeansManager />;
+      case "recipes":
+        return <RecipesManager />;
     }
   };
 
